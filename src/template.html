@@ -1,0 +1,1367 @@
+<title>BEVMAQ Maschine verkaufen</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Gebrauchte Getränkemaschinen verkaufen: Maschinendaten senden und eine erste Marktwerteinschätzung von BEVMAQ erhalten.">
+<meta name="theme-color" content="#FFFFFF">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=Bebas+Neue&display=swap">
+<!--
+  BEVMAQ · /verkaufen · Prototyp
+  ─────────────────────────────────────────────────────────────
+  Hauptidee: Das Formular prägt ein Typenschild. Jede Eingabe wird live auf
+  ein gebürstetes Maschinen-Typenschild graviert, fünf Flaschen füllen sich
+  als Fortschritt, am Ende landet der BEVMAQ-Stempel "Angefragt" darauf.
+  Darunter: der Ablauf in fünf Stationen mit echtem BEVMAQ-Footage.
+
+  Schrift: Norwester (wie auf den BEVMAQ-Covern). Liegt sie unter
+  fonts/norwester.woff2 neben der Datei oder ist sie installiert, wird sie
+  genutzt, sonst Bebas Neue als nächstverwandter Fallback.
+  Das Formular sendet im Prototyp nichts ab (siehe submit-Handler).
+-->
+<style>
+@font-face{font-family:"Norwester";src:local("Norwester"),local("norwester"),url("fonts/norwester.woff2") format("woff2"),url("fonts/norwester.otf") format("opentype");font-display:swap}
+
+/* Layout: Hero = Headline + Typenschild links, Formular rechts (Formular im ersten Bild). Danach Ablauf mit Sticky-Footage, CTA, Kontakt. */
+:root{
+  --paper:#FFFFFF;
+  --mist:#F6F5F3;          /* leicht warmes Off-White für Flächen */
+  --line:#E7E3DE;
+  --ink:#15130F;
+  --steel:#6B6762;          /* Sekundärtext, 5.6:1 auf Weiß */
+  --orange:#FF8F42;         /* BEVMAQ-Orange aus den Covern */
+  --orange-ink:#B4500C;     /* Orange für kleine Schrift, 5:1 auf Weiß */
+  --tint:#FFF3EA;
+  --plate-a:#F1F2F2; --plate-b:#D9DCDD;
+
+  --f-display:"Norwester","Bebas Neue","Oswald",Impact,"Arial Narrow",sans-serif;
+  --f-text:"Barlow","Helvetica Neue",Arial,sans-serif;
+  --f-mono:"Barlow Condensed","Arial Narrow",sans-serif;
+
+  --ease:cubic-bezier(.2,.7,.1,1);
+  --spring:cubic-bezier(.34,1.56,.64,1);
+  --hdr:68px;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 16px/1.55 var(--f-text);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--paper)}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--orange);outline-offset:3px;border-radius:6px}
+.wrap{max-width:1280px;margin:0 auto;padding-left:max(24px,env(safe-area-inset-left,0px));padding-right:max(24px,env(safe-area-inset-right,0px))}
+.mono{font-family:var(--f-mono);font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase}
+.skip{position:absolute;left:-999px;top:8px;background:var(--ink);color:#fff;padding:10px 14px;border-radius:8px;z-index:100}
+.skip:focus{left:16px}
+
+/* ── Header ─────────────────────────── */
+.hdr{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:rgba(255,255,255,.86);backdrop-filter:saturate(140%) blur(14px);-webkit-backdrop-filter:saturate(140%) blur(14px);border-bottom:1px solid transparent;transition:border-color .4s var(--ease)}
+.hdr.is-scrolled{border-color:var(--line)}
+.hdr .wrap{height:var(--hdr);display:flex;align-items:center;justify-content:space-between;gap:16px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo svg{height:30px;width:auto;display:block}
+.logo b{font:400 25px/1 var(--f-display);letter-spacing:.06em}
+.logo b i{font-style:normal;color:var(--orange)}
+.logo small{display:block;font:500 9.5px/1 var(--f-text);letter-spacing:.02em;color:var(--steel);margin-top:2px}
+.hdr nav{display:flex;align-items:center;gap:28px;font-size:14px;font-weight:500}
+.hdr nav a{text-decoration:none;color:var(--steel);transition:color .25s}
+.hdr nav a:hover{color:var(--ink)}
+.grate{display:flex;align-items:center;gap:7px;padding:6px 12px 6px 8px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--ink)!important;box-shadow:0 2px 10px rgba(21,19,15,.05);transition:border-color .3s,box-shadow .3s,transform .3s var(--ease)!important}
+.grate:hover{border-color:var(--orange);box-shadow:0 6px 22px rgba(255,143,66,.22);transform:translateY(-1px)}
+.grate .gg{width:17px;height:17px}
+.grate b{font-weight:700;font-variant-numeric:tabular-nums}
+.grate .gs{color:var(--orange);letter-spacing:1px;font-size:12px}
+.grate small{color:var(--steel);font-size:12.5px;font-weight:500}
+@media (max-width:1000px){.grate small{display:none}}
+@media (max-width:760px){.hdr nav .grate{display:flex}.grate .gs{letter-spacing:0;font-size:11px}.grate{padding:5px 9px 5px 6px;gap:5px}.hdr nav{gap:12px}}
+@media (max-width:400px){.grate .gs{display:none}.grate b::after{content:" ★";color:var(--orange);font-size:12px}}
+.hdr nav a{white-space:nowrap}
+@media (max-width:440px){.hdr .logo small{display:none}.hdr .tel{font-size:12.5px!important}}
+.hdr .tel{display:flex;align-items:center;gap:8px;color:var(--ink)!important;font-variant-numeric:tabular-nums}
+.hdr .tel::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--orange);box-shadow:0 0 0 4px var(--tint)}
+
+/* ── Hero ───────────────────────────── */
+.hero{position:relative;padding-block:clamp(28px,5vw,64px) clamp(60px,8vw,110px);overflow:hidden}
+.hero .wrap{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,.98fr);gap:clamp(32px,5vw,80px);align-items:start}
+.eyebrow{display:inline-flex;align-items:center;gap:10px;color:var(--orange-ink)}
+.eyebrow::before{content:"";width:22px;height:1.5px;background:var(--orange)}
+h1{font:400 clamp(54px,7.2vw,112px)/.88 var(--f-display);letter-spacing:.005em;margin:18px 0 0;text-wrap:balance}
+h1 .o{color:var(--orange)}
+h1 .ln{display:block;overflow:hidden;padding:.14em 0 .06em;margin:-.14em 0 -.06em}
+h1 .ln>span{display:inline-block}
+.lead{max-width:30em;font-size:clamp(17px,1.4vw,19px);color:var(--steel);margin:22px 0 0}
+.lead strong{color:var(--ink);font-weight:600}
+
+/* Typenschild */
+.plate-zone{margin-top:40px;perspective:1400px}
+.plate{position:relative;max-width:520px;border-radius:12px;padding:22px 26px 20px;
+  background:
+    repeating-linear-gradient(90deg,rgba(255,255,255,.0) 0 2px,rgba(255,255,255,.35) 2px 3px,rgba(0,0,0,.025) 3px 4px),
+    linear-gradient(135deg,var(--plate-a),var(--plate-b) 70%,#E8EAEA);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9),inset 0 -1px 0 rgba(0,0,0,.08),0 1px 2px rgba(21,19,15,.06),0 24px 48px -24px rgba(21,19,15,.28);
+  transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .8s var(--ease)}
+.plate::before{content:"";position:absolute;inset:7px;border:1px solid rgba(21,19,15,.12);border-radius:8px;pointer-events:none}
+.rivet{position:absolute;width:10px;height:10px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#B9BDBF 55%,#8E9395);box-shadow:0 1px 1px rgba(0,0,0,.25)}
+.rivet:nth-of-type(1){top:12px;left:12px}.rivet:nth-of-type(2){top:12px;right:12px}.rivet:nth-of-type(3){bottom:12px;left:12px}.rivet:nth-of-type(4){bottom:12px;right:12px}
+.plate-top{display:flex;justify-content:space-between;align-items:baseline;padding:0 12px 12px;border-bottom:1px solid rgba(21,19,15,.14)}
+.plate-top b{font:400 20px/1 var(--f-display);letter-spacing:.12em;color:#4A4743;text-shadow:0 1px 0 rgba(255,255,255,.8)}
+.plate-top b i{font-style:normal;color:var(--orange-ink)}
+.plate-top span{color:#6E6A65}
+.plate dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin:0;padding:6px 12px 0}
+.plate dl>div{padding:12px 0 10px;border-bottom:1px dashed rgba(21,19,15,.14);min-width:0}
+.plate dl>div:nth-child(odd){padding-right:16px}
+.plate dl>div.full{grid-column:1/-1}
+.plate dt{font:600 11.2px/1 var(--f-mono);letter-spacing:.18em;text-transform:uppercase;color:#77736E}
+.plate dd{margin:7px 0 0;font:600 18.9px/1.25 var(--f-mono);color:#2B2925;text-shadow:0 1px 0 rgba(255,255,255,.75),0 -1px 0 rgba(0,0,0,.08);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:20px}
+.plate dd.empty{color:#A5A19B}
+.plate dd.is-live::after{content:"";display:inline-block;width:8px;height:15px;margin-left:2px;background:var(--orange);vertical-align:-2px;animation:caret 1s steps(1) infinite}
+.plate dd.engrave{animation:engrave .7s var(--ease)}
+@keyframes caret{50%{opacity:0}}
+@keyframes engrave{0%{opacity:.2;filter:blur(3px);letter-spacing:.12em}100%{opacity:1;filter:blur(0);letter-spacing:0}}
+.plate-foot{display:flex;justify-content:space-between;padding:12px 12px 0;color:#77736E}
+.stamp{position:absolute;right:28px;top:50%;transform:translateY(-50%) rotate(-9deg) scale(1.8);opacity:0;pointer-events:none;
+  font:400 34px/1 var(--f-display);letter-spacing:.08em;color:var(--orange);border:3px solid var(--orange);border-radius:8px;padding:10px 14px 6px;
+  mix-blend-mode:multiply;text-align:center}
+.stamp small{display:block;font:600 10.6px/1.2 var(--f-mono);letter-spacing:.16em;margin-top:4px}
+.done .stamp{animation:stamp .55s var(--ease) forwards}
+.done .plate{animation:thud .5s .38s}
+@keyframes stamp{0%{opacity:0;transform:translateY(-50%) rotate(-14deg) scale(1.9)}70%{opacity:1;transform:translateY(-50%) rotate(-9deg) scale(.96)}100%{opacity:.92;transform:translateY(-50%) rotate(-9deg) scale(1)}}
+@keyframes thud{0%,100%{translate:0 0}30%{translate:0 2px}60%{translate:0 -1px}}
+
+.trust{display:flex;flex-wrap:wrap;gap:10px 26px;margin-top:28px;color:var(--steel);font-size:14px}
+.trust span{display:inline-flex;align-items:center;gap:8px}
+.trust svg{width:16px;height:16px;flex:none}
+
+/* ── Formular ───────────────────────── */
+.formcard{scroll-margin-top:calc(var(--hdr) + 16px);position:relative;background:var(--paper);border:1px solid var(--line);border-radius:22px;box-shadow:0 1px 2px rgba(21,19,15,.04),0 40px 80px -40px rgba(21,19,15,.22);overflow:hidden;min-width:0}
+.fc-head{padding:26px 30px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:flex-end;gap:16px}
+.fc-head h2{font:400 26px/1 var(--f-display);letter-spacing:.03em;margin:8px 0 0}
+.fc-head .mono{color:var(--steel)}
+.bottles{display:flex;gap:7px;align-items:flex-end}
+.bottle{width:15px;height:40px;display:block}
+.bottle .liquid{transform:scaleY(var(--f,0));transform-origin:50% 100%;transition:transform .9s var(--ease)}
+.bottle .wave{opacity:0;transition:opacity .3s}
+.bottle.is-now .wave{opacity:1}
+.bottle .body{fill:none;stroke:var(--ink);stroke-width:1.3}
+.bottle.is-full .body{stroke:var(--orange-ink)}
+.mini{display:none}
+
+.steps{position:relative;display:grid}
+.step{grid-area:1/1;padding:30px 30px 26px;display:flex;flex-direction:column;min-width:0;visibility:hidden;opacity:0;transform:translateY(26px);filter:blur(6px);transition:opacity .5s var(--ease),transform .6s var(--ease),filter .5s var(--ease),visibility 0s .6s}
+.step.is-on{visibility:visible;opacity:1;transform:none;filter:none;transition-delay:.12s,.12s,.12s,0s}
+.step.is-out{transform:translateY(-22px)}
+.q-no{color:var(--orange-ink)}
+.q{font:600 clamp(22px,2vw,27px)/1.18 var(--f-text);letter-spacing:-.015em;margin:10px 0 6px;text-wrap:balance}
+.hint{color:var(--steel);font-size:14.5px;margin:0 0 22px}
+
+.chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.chip{position:relative;display:flex;align-items:center;gap:10px;min-height:54px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--paper);cursor:pointer;text-align:left;font-weight:500;font-size:15px;line-height:1.2;transition:border-color .25s,background .25s,transform .35s var(--spring),box-shadow .25s}
+.chip:hover{border-color:#CFC8C0;transform:translateY(-2px)}
+.chip:active{transform:scale(.97)}
+.chip kbd{flex:none;width:20px;height:20px;border-radius:5px;border:1px solid var(--line);display:grid;place-items:center;font:600 12.4px/1 var(--f-mono);color:var(--steel);transition:all .25s}
+.chip[aria-checked="true"]{border-color:var(--orange);background:var(--tint);box-shadow:inset 0 0 0 1px var(--orange)}
+.chip[aria-checked="true"] kbd{background:var(--orange);border-color:var(--orange);color:var(--ink)}
+.chip svg{width:22px;height:22px;flex:none;stroke:var(--ink);fill:none;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.chips.tall .chip{flex-direction:column;align-items:flex-start;min-height:92px;gap:12px;padding:14px}
+.chips.tall .chip kbd{position:absolute;top:10px;right:10px}
+.chips.two{grid-template-columns:repeat(3,minmax(0,1fr))}
+
+.field{position:relative;margin-top:14px}
+.field label{display:block;font-size:13px;font-weight:600;margin-bottom:7px}
+.field label span{color:var(--steel);font-weight:400}
+.input{width:100%;height:54px;padding:0 16px;border:1px solid var(--line);border-radius:12px;background:var(--mist);font-size:16px;transition:border-color .25s,background .25s,box-shadow .25s}
+.input::placeholder{color:#A39E97}
+.input:hover{border-color:#D6D0C9}
+.input:focus{outline:none;border-color:var(--orange);background:var(--paper);box-shadow:0 0 0 4px var(--tint)}
+.input[aria-invalid="true"]{border-color:#C8371D;box-shadow:0 0 0 4px #FCE9E5}
+.err{display:block;min-height:0;color:#B1301A;font-size:13px;margin-top:6px}
+.err:empty{display:none}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px}
+.other{display:none}
+.other.show{display:block;animation:rise .45s var(--ease)}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}}
+
+/* Baujahr-Lineal */
+.year{margin-top:22px}
+.year-top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.year-num{width:3.1em;border:0;background:transparent;font:400 64px/1 var(--f-display);letter-spacing:.02em;padding:0;-moz-appearance:textfield;color:var(--ink)}
+.year-num::-webkit-outer-spin-button,.year-num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.year-num:focus{outline:none;color:var(--orange-ink)}
+.year-age{color:var(--steel);font-size:14px;padding-bottom:10px;text-align:right}
+.ruler{position:relative;height:58px;margin-top:6px;touch-action:pan-y}
+.ruler .ticks{position:absolute;inset:0 0 18px;opacity:.25;border-right:1.5px solid var(--ink);background:repeating-linear-gradient(90deg,var(--ink) 0 1px,transparent 1px calc(100%/56)) left bottom/100% 38% no-repeat,repeating-linear-gradient(90deg,var(--ink) 0 1.5px,transparent 1.5px calc(100%/4)) left bottom/100% 100% no-repeat}
+.ruler .fill{position:absolute;left:0;bottom:18px;height:3px;width:calc(var(--y,0.7)*100%);background:var(--orange);border-radius:2px;transition:width .15s linear}
+.ruler .labels{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;font:600 12.4px/1 var(--f-mono);color:var(--steel)}
+.ruler input{position:absolute;inset:0 0 14px;width:100%;margin:0;opacity:0;cursor:ew-resize}
+.ruler .pin{position:absolute;bottom:12px;left:calc(var(--y,0.7)*100%);width:18px;height:46px;translate:-50% 0;pointer-events:none;transition:left .15s linear}
+.ruler .pin::before{content:"";position:absolute;left:50%;top:0;bottom:6px;width:2px;translate:-50% 0;background:var(--ink)}
+.ruler .pin::after{content:"";position:absolute;left:50%;bottom:0;width:14px;height:14px;translate:-50% 0;border-radius:50%;background:var(--orange);border:2px solid var(--paper);box-shadow:0 2px 8px rgba(180,80,12,.45)}
+.ruler:focus-within .pin::after{box-shadow:0 0 0 4px var(--tint),0 2px 8px rgba(180,80,12,.45)}
+
+/* Upload */
+.drop{display:flex;align-items:center;gap:14px;margin-top:14px;padding:16px;border:1.5px dashed #D6D0C9;border-radius:12px;cursor:pointer;transition:border-color .25s,background .25s}
+.drop:hover,.drop.over{border-color:var(--orange);background:var(--tint)}
+.drop svg{width:26px;height:26px;stroke:var(--orange-ink);fill:none;stroke-width:1.5;flex:none}
+.drop b{display:block;font-weight:600;font-size:15px}
+.drop span{color:var(--steel);font-size:13.5px}
+.drop input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.thumbs{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.thumbs img{width:54px;height:54px;object-fit:cover;border-radius:8px;border:1px solid var(--line);animation:rise .4s var(--ease)}
+
+.legal{font-size:12.5px;color:var(--steel);margin:14px 0 0;line-height:1.5}
+.legal a{color:var(--ink)}
+
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:auto;padding-top:26px}
+.back{background:none;border:0;padding:10px 4px;color:var(--steel);cursor:pointer;font-weight:500;display:inline-flex;align-items:center;gap:6px;transition:color .2s}
+.back:hover{color:var(--ink)}
+.back[hidden]{display:none}
+.skipstep{background:none;border:0;color:var(--steel);text-decoration:underline;text-underline-offset:3px;cursor:pointer;font-size:14px;padding:10px 4px}
+.next{position:relative;display:inline-flex;align-items:center;gap:12px;height:54px;padding:0 22px 0 26px;border:0;border-radius:999px;background:var(--ink);color:#fff;font-weight:600;font-size:16px;cursor:pointer;overflow:hidden;isolation:isolate;transition:transform .35s var(--spring)}
+.next::before{content:"";position:absolute;inset:0;background:var(--orange);transform:translateY(101%);transition:transform .45s var(--ease);z-index:-1}
+.next:hover::before{transform:none}
+.next:hover{color:var(--ink)}
+.next:active{transform:scale(.97)}
+.next .arr{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.14);display:grid;place-items:center;transition:transform .45s var(--ease),background .3s}
+.next:hover .arr{transform:translateX(3px);background:rgba(21,19,15,.12)}
+.next.primary{background:var(--orange);color:var(--ink)}
+.next.primary::before{background:var(--ink)}
+.next.primary:hover{color:#fff}
+.enter{color:var(--steel);font-size:12.5px;display:flex;align-items:center;gap:6px}
+.enter kbd{font:600 12.4px/1 var(--f-mono);border:1px solid var(--line);border-radius:5px;padding:4px 6px}
+.shake{animation:shake .4s}
+@keyframes shake{20%,60%{translate:-5px 0}40%,80%{translate:5px 0}}
+
+/* Erfolg */
+.success{text-align:left}
+.success .check{width:64px;height:64px;border-radius:50%;background:var(--orange);display:grid;place-items:center;margin-bottom:22px;transform:scale(0);transition:transform .6s .25s var(--spring)}
+.success.is-on .check{transform:scale(1)}
+.success .check svg{width:30px;height:30px;stroke:var(--ink);stroke-width:2.4;fill:none;stroke-dasharray:40;stroke-dashoffset:40;transition:stroke-dashoffset .5s .7s var(--ease)}
+.success.is-on .check svg{stroke-dashoffset:0}
+.recap{margin:20px 0 0;padding:16px 18px;border-radius:12px;background:var(--mist);display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 18px;font-size:14.5px}
+.recap dt{color:var(--steel)}
+.recap dd{margin:0;font-weight:500;overflow-wrap:anywhere}
+.proto{margin-top:16px;font-size:12.5px;color:var(--steel)}
+
+/* Ambient-Förderband unter dem Hero */
+.belt{position:absolute;left:0;right:0;bottom:0;height:76px;pointer-events:none;overflow:hidden}
+.belt::after{content:"";position:absolute;left:0;right:0;bottom:22px;height:1px;background:var(--line)}
+.belt .track{position:absolute;bottom:23px;left:0;display:flex;gap:46px;width:max-content;animation:belt 48s linear infinite}
+.belt svg{width:16px;height:42px;flex:none}
+.belt svg path{fill:none;stroke:#D9D3CC;stroke-width:1.2}
+.belt svg.o path{stroke:var(--orange)}
+@keyframes belt{to{transform:translateX(-50%)}}
+
+/* ── Ablauf ─────────────────────────── */
+.flow{padding-block:clamp(80px,10vw,150px);background:var(--mist);position:relative}
+.flow-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px 60px;align-items:end;margin-bottom:clamp(40px,6vw,80px)}
+h2.big{font:400 clamp(44px,5.6vw,88px)/.9 var(--f-display);margin:14px 0 0;letter-spacing:.005em}
+h2.big .o{color:var(--orange)}
+.flow-head p{color:var(--steel);max-width:30em;margin:0;font-size:17px}
+.flow-body{display:grid;grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr);gap:clamp(32px,5vw,80px)}
+.stations{position:relative;padding-left:56px}
+.rail{position:absolute;left:15px;top:14px;bottom:14px;width:2px;background:var(--line);border-radius:2px}
+.rail i{position:absolute;inset:0;background:var(--orange);transform:scaleY(var(--p,0));transform-origin:top;border-radius:2px}
+.station{position:relative;min-height:56vh;display:flex;flex-direction:column;justify-content:center;padding-block:24px;opacity:.32;transition:opacity .6s var(--ease)}
+.station[data-i="0"]{min-height:44vh;justify-content:flex-start;padding-top:0}
+.station.is-on{opacity:1}
+.station .dot{position:absolute;left:-56px;top:calc(50% - 16px);width:32px;height:32px;border-radius:50%;background:var(--mist);border:2px solid var(--line);display:grid;place-items:center;font:600 13px/1 var(--f-mono);color:var(--steel);transition:all .5s var(--ease)}
+.station[data-i="0"] .dot{top:-2px}
+.station.is-on .dot,.station.is-past .dot{border-color:var(--orange);background:var(--orange);color:var(--ink)}
+.station h3{font:400 clamp(34px,3.6vw,54px)/.95 var(--f-display);margin:0;letter-spacing:.01em}
+.station p{margin:14px 0 0;max-width:28em;color:var(--steel);font-size:17px}
+.station .tag{color:var(--orange-ink);margin-bottom:12px}
+.screen{position:sticky;top:calc(var(--hdr) + 3vh);height:calc(100vh - var(--hdr) - 6vh);max-height:880px;width:100%;border-radius:28px;overflow:hidden;border:1px solid var(--line);
+  background:radial-gradient(120% 85% at 50% 30%,#FFFFFF 0,#F7F6F3 55%,#ECE9E4 100%)}
+.stage3d{position:absolute;inset:0}
+.s-hud{position:absolute;left:24px;top:22px;right:24px;display:flex;justify-content:space-between;color:var(--steel);z-index:2;pointer-events:none}
+.s-hud b{color:var(--ink);font-weight:500}
+.s-step{position:absolute;left:0;right:0;bottom:26px;text-align:center;font:400 clamp(30px,3.2vw,52px)/1 var(--f-display);letter-spacing:.02em;color:var(--ink);z-index:2;pointer-events:none}
+.s-step.swap{animation:fadeUp .7s var(--ease) both}
+.s-step span{color:var(--orange)}
+.nogl{display:none}
+.screen.nogl .nogl{display:grid;place-items:center;position:absolute;inset:0;font:400 min(40vw,320px)/1 var(--f-display);color:var(--orange)}
+
+/* ── CTA + Kontakt ───────────────────── */
+.cta{position:relative;padding-block:clamp(90px,12vw,170px);overflow:hidden;color:#fff;background:#1D1B18}
+.cta img{position:absolute;inset:0;width:100%;height:120%;object-fit:cover;top:-10%;opacity:.42;transform:translateY(var(--py,0px))}
+.cta::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(21,19,15,.85),rgba(21,19,15,.35))}
+.cta .wrap{position:relative;z-index:2}
+.cta h2{font:400 clamp(48px,7vw,110px)/.88 var(--f-display);margin:16px 0 30px;max-width:15ch;text-wrap:balance}
+.cta h2 .o{color:var(--orange)}
+.cta .eyebrow{color:var(--orange)}
+.contact{padding-block:64px 36px}
+.contact .cols{display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr;gap:32px}
+.contact h4{margin:0 0 12px;color:var(--steel);font-weight:500}
+.contact p{margin:0;line-height:1.7}
+.contact .sel{user-select:all}
+.foot{border-top:1px solid var(--line);margin-top:48px;padding-top:20px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;color:var(--steel);font-size:13.5px}
+.foot nav{display:flex;flex-wrap:wrap;gap:20px}
+.foot a{text-decoration:none}
+.foot a:hover{color:var(--ink)}
+
+
+/* ── Hero-Anlage ─────────────────────── */
+.hero .wrap{position:relative;z-index:2}
+.hero-line{position:relative;z-index:1;height:clamp(240px,30vw,440px);margin-top:12px;pointer-events:none}
+.hero-line canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hl-tag{position:absolute;left:max(24px,calc((100vw - 1280px)/2 + 24px));bottom:28px;display:inline-flex;align-items:center;gap:10px;color:var(--steel);background:rgba(255,255,255,.85);border:1px solid var(--line);border-radius:999px;padding:8px 14px 8px 12px;backdrop-filter:blur(8px)}
+.hl-tag i{width:7px;height:7px;border-radius:50%;background:var(--orange);box-shadow:0 0 0 0 rgba(255,143,66,.6);animation:pulse 1.8s infinite}
+.hl-tag b{color:var(--ink);font-weight:500}
+@keyframes pulse{70%{box-shadow:0 0 0 9px rgba(255,143,66,0)}100%{box-shadow:0 0 0 0 rgba(255,143,66,0)}}
+
+/* "verkaufen" füllt sich wie eine Flasche */
+h1 .liq{color:transparent;-webkit-text-stroke:1.5px var(--orange);background:linear-gradient(0deg,var(--orange) 50%,transparent 50%) 0 100%/100% 200% no-repeat;-webkit-background-clip:text;background-clip:text}
+html.motion h1 .liq{animation:fillUp 2.4s var(--ease) 1.1s both}
+@keyframes fillUp{from{background-position:0 0}to{background-position:0 100%}}
+
+/* Lichtrand am Formular */
+.formcard::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1.5px;background:radial-gradient(280px circle at var(--mx,50%) var(--my,0%),var(--orange),transparent 70%);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:var(--glow,0);transition:opacity .5s var(--ease);pointer-events:none;z-index:3}
+
+/* ── Gepinnte Anlage ─────────────────── */
+.plant{position:relative;background:var(--paper)}
+html.motion .plant{height:760vh}
+.plant-pin{position:relative;height:100vh;height:100svh;overflow:hidden}
+html.motion .plant-pin{position:sticky;top:0}
+.plant canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.plant .wrap{position:relative;height:100%;pointer-events:none}
+.plant a,.plant button{pointer-events:auto}
+.plant-intro{position:absolute;top:calc(var(--hdr) + 5vh);max-width:620px;opacity:var(--intro,1);transform:translateY(calc((1 - var(--intro,1)) * -40px));filter:blur(calc((1 - var(--intro,1)) * 6px))}
+.plant-intro p{color:var(--steel);font-size:18px;max-width:28em;margin:18px 0 0}
+.scrollhint{display:inline-flex;align-items:center;gap:10px;margin-top:26px;color:var(--steel)}
+.scrollhint::after{content:"";width:1px;height:28px;background:linear-gradient(var(--orange),transparent);animation:drip 1.6s var(--ease) infinite}
+@keyframes drip{from{transform:scaleY(0);transform-origin:top}50%{transform:scaleY(1);transform-origin:top}51%{transform-origin:bottom}to{transform:scaleY(0);transform-origin:bottom}}
+.plant-card{position:absolute;left:0;bottom:9vh;width:min(440px,100%);padding:24px 26px 22px;border-radius:20px;background:rgba(255,255,255,.82);border:1px solid var(--line);backdrop-filter:blur(14px) saturate(140%);-webkit-backdrop-filter:blur(14px) saturate(140%);box-shadow:0 30px 60px -30px rgba(21,19,15,.25);opacity:var(--card,0);transform:translateY(calc((1 - var(--card,0)) * 30px))}
+.pc-top{display:flex;justify-content:space-between;align-items:center;color:var(--steel)}
+.pc-top b{color:var(--orange-ink);font-weight:500}
+.pc-bar{height:2px;background:var(--line);border-radius:2px;margin:14px 0 18px;overflow:hidden}
+.pc-bar i{display:block;height:100%;width:calc(var(--sp,0)*100%);background:var(--orange)}
+.pc-name{font:400 clamp(34px,3.4vw,50px)/.92 var(--f-display);margin:0;letter-spacing:.01em}
+.pc-ex{display:block;margin-top:10px;color:var(--orange-ink)}
+.pc-txt{margin:12px 0 0;color:var(--steel);font-size:16px}
+.plant-card.swap .pc-name,.plant-card.swap .pc-ex,.plant-card.swap .pc-txt{animation:fadeUp .7s var(--ease) both}
+.plant-card.swap .pc-ex{animation-delay:.06s}.plant-card.swap .pc-txt{animation-delay:.12s}
+.plant-index{position:absolute;right:0;top:calc(var(--hdr) + 4vh);list-style:none;margin:0;padding:14px 16px;display:grid;gap:10px;opacity:var(--card,0);background:rgba(255,255,255,.8);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.plant-index li{display:flex;align-items:center;justify-content:flex-end;gap:12px;color:#A39E97;transition:color .4s}
+.plant-index li::after{content:"";width:14px;height:1.5px;background:currentColor;transition:width .5s var(--ease),background .4s}
+.plant-index li.is-on{color:var(--ink)}
+.plant-index li.is-on::after{width:42px;background:var(--orange)}
+.plant-index li.is-past{color:var(--steel)}
+.plant-hud{position:absolute;right:0;bottom:9vh;text-align:right;color:var(--steel);opacity:var(--card,0)}
+.plant-hud b{display:block;font:400 clamp(40px,4vw,64px)/1 var(--f-display);color:var(--ink);letter-spacing:.02em;margin-top:6px;font-variant-numeric:tabular-nums}
+.plant-outro{position:absolute;top:calc(var(--hdr) + 6vh);left:0;right:0;text-align:center;opacity:var(--outro,0);transform:translateY(calc((1 - var(--outro,0)) * 40px))}
+.plant-outro .big{margin-top:10px}
+.plant-outro p{color:var(--steel);font-size:18px;margin:16px 0 26px}
+html:not(.motion) .plant-card,html:not(.motion) .plant-hud,html:not(.motion) .plant-outro{display:none}
+html:not(.motion) .plant-index{opacity:1}
+
+
+/* ── 3D-Film ─────────────────────────── */
+.film-fade{height:28vh;background:linear-gradient(var(--paper),#07080A)}
+.film-fade.rev{background:linear-gradient(#07080A,var(--paper))}
+.film{position:relative;background:#07080A;color:#F4F1EC}
+html.motion .film{height:1150vh}
+.film-pin{position:relative;height:100vh;height:100svh;overflow:hidden}
+html.motion .film-pin{position:sticky;top:0}
+.film-stage{position:absolute;inset:0}
+.film-vig{position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 90% at 50% 45%,transparent 55%,rgba(0,0,0,.55) 100%)}
+.film-bar{position:absolute;left:0;right:0;height:var(--bars,0px);background:#000;transition:height .9s var(--ease);z-index:3}
+.film-bar.top{top:0}.film-bar.bot{bottom:0}
+.film-flash{position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 50%,rgba(255,170,110,.10) 0%,rgba(12,10,9,.55) 70%,rgba(8,7,6,.85) 100%);opacity:var(--flash,0);pointer-events:none;z-index:4}
+.film-hud{position:absolute;left:0;right:0;top:calc(var(--bars,0px) + var(--hdr) + 14px);display:flex;justify-content:space-between;padding-inline:max(24px,env(safe-area-inset-left,0px));color:rgba(244,241,236,.62);z-index:5;transition:top .9s var(--ease)}
+.film-hud b{color:#fff;font-weight:500;font-variant-numeric:tabular-nums}
+.film-hud em{font-style:normal;opacity:.5;margin:0 6px}
+.rec{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--orange);margin-right:10px;vertical-align:1px;animation:pulse 1.8s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 9px rgba(255,143,66,0)}0%{box-shadow:0 0 0 0 rgba(255,143,66,.6)}}
+.film-wrap{position:relative;height:100%;z-index:5;pointer-events:none}
+.film-wrap a{pointer-events:auto}
+.film .eyebrow{color:var(--orange)}
+.film-intro{position:absolute;left:max(24px,env(safe-area-inset-left,0px));bottom:16vh;max-width:640px;opacity:var(--intro,1);transform:translateY(calc((1 - var(--intro,1)) * -40px));filter:blur(calc((1 - var(--intro,1)) * 8px))}
+.film-intro .big,.film-outro .big{color:#fff}
+.film-intro p,.film-outro p{color:rgba(244,241,236,.72);font-size:18px;max-width:30em;margin:18px 0 0}
+.film .scrollhint{color:rgba(244,241,236,.6)}
+.film-chap{position:absolute;left:max(24px,env(safe-area-inset-left,0px));bottom:calc(var(--bars,0px) + 5vh);display:flex;align-items:flex-end;gap:22px;max-width:760px;opacity:var(--chap,0);transform:translateY(calc((1 - var(--chap,0)) * 30px))}
+.fc-no{font:400 clamp(110px,13vw,220px)/.78 var(--f-display);color:transparent;-webkit-text-stroke:1.5px var(--orange);flex:none}
+.fc-body{padding-bottom:6px;min-width:0}
+.fc-ex{color:var(--orange)}
+.film-chap h3{font:400 clamp(44px,5.4vw,92px)/.9 var(--f-display);margin:10px 0 0;color:#fff;letter-spacing:.01em}
+.film-chap p{margin:12px 0 0;color:rgba(244,241,236,.74);font-size:17px;max-width:30em}
+.film-chap.swap .fc-no{animation:numIn 1s var(--ease) both}
+.film-chap.swap h3{animation:maskUp 1s var(--ease) .05s both}
+.film-chap.swap .fc-ex,.film-chap.swap p{animation:fadeUp .9s var(--ease) .15s both}
+@keyframes maskUp{from{clip-path:inset(0 0 100% 0);transform:translateY(40%)}to{clip-path:inset(0 0 -10% 0);transform:none}}
+@keyframes numIn{from{opacity:0;transform:translateY(30%) scale(.9);filter:blur(10px)}}
+.film-count{position:absolute;right:max(24px,env(safe-area-inset-right,0px));bottom:calc(var(--bars,0px) + 5vh);text-align:right;color:rgba(244,241,236,.6);opacity:var(--chap,0)}
+.film-count b{display:block;font:400 clamp(40px,4vw,68px)/1 var(--f-display);color:#fff;margin-top:6px;font-variant-numeric:tabular-nums}
+.film-outro{position:absolute;left:0;right:0;top:calc(var(--hdr) + 12vh);text-align:center;opacity:var(--outro,0);transform:translateY(calc((1 - var(--outro,0)) * 40px))}
+.film-outro p{margin-inline:auto;margin-bottom:28px}
+.film-outro::before{content:"";position:absolute;left:50%;top:50%;width:min(1100px,140vw);height:640px;transform:translate(-50%,-50%);background:radial-gradient(closest-side,rgba(8,8,10,.7),rgba(8,8,10,0));z-index:-1;pointer-events:none}
+.film-outro{isolation:isolate}
+.film-vig::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,9,8,.78) 0%,rgba(10,9,8,.62) 55%,rgba(10,9,8,.3) 100%);opacity:var(--outro,0)}
+.film-outro p{color:rgba(255,255,255,.92)!important;text-shadow:0 2px 18px rgba(0,0,0,.8)}
+.film-outro .big{text-shadow:0 4px 40px rgba(0,0,0,.6)}
+.film-outro .eyebrow{text-shadow:0 1px 10px rgba(0,0,0,.9)}
+.film-prog{position:absolute;left:max(24px,env(safe-area-inset-left,0px));right:max(24px,env(safe-area-inset-right,0px));bottom:calc(var(--bars,0px) + 16px);display:flex;gap:6px;z-index:5;transition:bottom .9s var(--ease)}
+.film-prog i{flex:1;height:2px;background:rgba(255,255,255,.16);border-radius:2px;overflow:hidden;position:relative}
+.film-prog i b{position:absolute;inset:0;background:var(--orange);transform-origin:left;transform:scaleX(var(--f,0))}
+.film-fallback{display:none;list-style:none;margin:0;padding:0;color:#fff}
+.film.nofilm{height:auto!important}
+.film.nofilm .film-pin{position:relative;height:auto;min-height:70vh;padding-block:120px}
+.film.nofilm .film-chap,.film.nofilm .film-count,.film.nofilm .film-outro,.film.nofilm .film-prog,.film.nofilm .film-hud{display:none}
+.film.nofilm .film-intro{position:relative;left:auto;bottom:auto}
+.film.nofilm .film-fallback{display:grid;gap:12px;margin-top:40px;font-size:15px}
+html:not(.motion) .film-chap,html:not(.motion) .film-count,html:not(.motion) .film-outro{display:none}
+@media (max-width:760px){
+  html.motion .film{height:1250vh}
+  .film-chap{flex-direction:column;align-items:flex-start;gap:4px;right:16px}
+  .fc-no{font-size:84px}
+  .film-chap h3{font-size:42px}
+  .film-chap p{font-size:15px}
+  .film-count{top:calc(var(--bars,0px) + var(--hdr) + 44px);bottom:auto}
+  .film-count b{font-size:30px}
+  .film-hud{font-size:10px}
+  .film-hud span:first-child{display:none}
+  .film-intro{bottom:12vh;right:16px}
+  .film-intro p{font-size:16px}
+  .film-outro{top:calc(var(--hdr) + 8vh);padding-inline:16px}
+}
+
+/* ── Laufschrift ─────────────────────── */
+.marquee{overflow:hidden;padding-block:clamp(30px,5vw,70px);border-block:1px solid var(--line);background:var(--paper)}
+.mq-track{display:flex;width:max-content;gap:.4em;font:400 clamp(72px,11vw,190px)/.9 var(--f-display);letter-spacing:.01em;white-space:nowrap;will-change:transform}
+.mq-track span{color:transparent;-webkit-text-stroke:1.5px rgba(21,19,15,.55)}
+.mq-track span.o{color:var(--orange);-webkit-text-stroke:0}
+.mq-track i{font-style:normal;color:var(--orange);font-size:.3em;align-self:center}
+
+@media (max-width:1060px){
+  html.motion .plant{height:820vh}
+  .plant-index{display:none}
+  .plant-hud{bottom:auto;top:calc(var(--hdr) + 16px)}
+  .plant-hud b{font-size:30px}
+  .plant-card{bottom:max(16px,env(safe-area-inset-bottom,0px));padding:18px 20px}
+  .pc-txt{font-size:14.5px}
+  .plant-intro{top:calc(var(--hdr) + 3vh)}
+  .plant-intro p{font-size:16px}
+  .hl-tag{bottom:14px}
+}
+
+/* ── Load-in (CSS-first, ohne JS sichtbar) ─── */
+html.motion h1 .ln>span{animation:lineUp 1.1s var(--ease) both;animation-delay:calc(var(--d)*110ms + 120ms)}
+html.motion [data-in]{animation:fadeUp .9s var(--ease) both;animation-delay:calc(var(--d)*120ms + 380ms)}
+html.motion .formcard{animation:cardIn 1.1s var(--ease) both .25s}
+html.motion .plate{animation:plateIn 1.3s var(--ease) both .7s}
+@keyframes lineUp{from{transform:translateY(105%)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px);filter:blur(6px)}}
+@keyframes cardIn{from{opacity:0;transform:translateY(40px) scale(.98)}}
+@keyframes plateIn{from{opacity:0;transform:rotateX(28deg) translateY(30px)}}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition-duration:.01ms!important;transition-delay:0s!important;scroll-behavior:auto!important}
+}
+
+/* ── Responsive ─────────────────────── */
+@media (max-width:1060px){
+  .hero .wrap{grid-template-columns:1fr}
+  .plate-zone{display:none}
+  .done .plate-zone,.formcard~.plate-zone{display:none}
+  .mini{display:flex;flex-wrap:wrap;gap:6px;padding:0 30px 16px;border-bottom:1px solid var(--line);margin-top:-6px}
+  .mini:empty{display:none}
+  .mini span{font:600 14.2px/1 var(--f-mono);padding:7px 9px;border-radius:6px;background:var(--mist);animation:rise .4s var(--ease)}
+  .hdr nav a:not(.tel):not(.grate){display:none}
+  .flow-head{grid-template-columns:1fr}
+  .flow-body{grid-template-columns:1fr}
+  .screen{order:-1;top:var(--hdr);height:46svh;z-index:3;border-radius:20px;margin-bottom:18px}
+  .s-step{font-size:28px;bottom:16px}
+  .s-hud{left:16px;right:16px;top:14px}
+  .station{min-height:58vh;padding-block:0 40px;justify-content:flex-start}
+  .station .dot{top:-2px}
+  .station[data-i="0"]{min-height:auto}
+  .contact .cols{grid-template-columns:1fr 1fr}
+}
+@media (max-width:620px){
+  .wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  :root{--hdr:60px}
+  .logo svg{height:26px}.logo b{font-size:22px}
+  .hdr .tel{font-size:13px}
+  .hero{padding-top:20px}
+  .lead{margin-top:14px}
+  .trust{display:none}
+  .formcard{border-radius:18px;margin-inline:-4px}
+  .fc-head{padding:20px 18px 16px;flex-direction:column;align-items:flex-start}
+  .mini{padding:0 18px 14px}
+  .step{padding:22px 18px 20px}
+  .chips,.chips.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .chips.tall .chip{min-height:78px}
+  .grid2{grid-template-columns:1fr}
+  .enter{display:none}
+  .next{padding:0 18px 0 22px}
+  .year-num{font-size:56px}
+  .stations{padding-left:46px}
+  .station .dot{left:-46px;width:28px;height:28px}
+  .rail{left:13px}
+  .contact .cols{grid-template-columns:1fr}
+}
+
+/* ── Rezensionen ─────────────────────── */
+.rev{position:relative;overflow:hidden;color:#fff;background:#121110;padding-block:clamp(100px,13vw,190px) clamp(80px,9vw,140px)}
+.rev>img{position:absolute;inset:0;width:100%;height:120%;object-fit:cover;top:-10%;opacity:.16;filter:saturate(.6);transform:translateY(var(--py,0px))}
+.rev::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#121110 0%,rgba(18,17,16,.7) 40%,#121110 100%);z-index:1}
+.rev-glow{position:absolute;z-index:1;left:-10%;top:-20%;width:70vw;height:70vw;border-radius:50%;background:radial-gradient(closest-side,rgba(255,143,66,.28),rgba(255,143,66,0));filter:blur(10px);transform:translate3d(calc(var(--gx,0) * 40px),calc(var(--gy,0) * 40px),0);transition:transform 1.2s var(--ease)}
+.rev .wrap,.rev-rows{position:relative;z-index:2}
+.rev-top{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(40px,6vw,110px);align-items:end}
+.rev .eyebrow{color:var(--orange)}
+.rev-big{display:flex;align-items:baseline;gap:14px;margin-top:18px}
+.rev-big b{font:400 clamp(130px,17vw,260px)/.8 var(--f-display);letter-spacing:-.01em;background:linear-gradient(180deg,#fff 30%,#FFB27C 100%);-webkit-background-clip:text;background-clip:text;color:transparent;font-variant-numeric:tabular-nums}
+.rev-big small{font:400 clamp(32px,3.4vw,52px)/1 var(--f-display);color:rgba(255,255,255,.4)}
+.rev-stars{display:flex;gap:8px;margin:22px 0 18px}
+.rev-stars span{position:relative;width:clamp(30px,3vw,42px);aspect-ratio:1}
+.rev-stars svg{position:absolute;inset:0;width:100%;height:100%}
+.rev-stars .f{clip-path:inset(0 calc(100% - var(--f,0%)) 0 0);transition:clip-path .7s var(--ease);filter:drop-shadow(0 0 12px rgba(255,143,66,.55))}
+.rev-meta{margin:0;color:rgba(244,241,236,.7);font-size:15px}
+.gmark{font:600 17px/1 var(--f-text);letter-spacing:-.02em;background:#fff;border-radius:999px;padding:5px 10px 6px;margin-right:6px;display:inline-block}
+.gmark i{font-style:normal}
+.rev-head h2{font:400 clamp(54px,7.4vw,120px)/.88 var(--f-display);margin:0 0 24px;max-width:13ch;text-wrap:balance}
+.rev-head h2 .o{color:var(--orange)}
+#rvCount{font-variant-numeric:tabular-nums}
+.rev-head p{color:rgba(244,241,236,.72);font-size:18px;max-width:34em;margin:0 0 30px}
+.rev-ctas{display:flex;flex-wrap:wrap;gap:14px 28px;align-items:center}
+.rev-link{color:rgba(255,255,255,.8);font-size:13px;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;border-bottom:1px solid rgba(255,143,66,.6);padding-bottom:4px}
+.rev-link:hover{color:#fff;border-color:var(--orange)}
+.rev-flag{margin:22px 0 0!important;font-size:11px!important;letter-spacing:.12em;text-transform:uppercase;color:#FFB27C!important}
+.rev-rows{margin-top:clamp(60px,8vw,110px);display:grid;gap:20px;-webkit-mask:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.rev-row{display:flex;gap:20px;width:max-content;will-change:transform}
+.rcard{position:relative;width:clamp(290px,30vw,420px);flex:none;padding:28px 28px 24px;border-radius:22px;background:linear-gradient(160deg,rgba(255,255,255,.09),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);transition:transform .5s var(--ease),border-color .4s,background .4s}
+.rcard:hover{transform:translateY(-6px);border-color:rgba(255,143,66,.55);background:linear-gradient(160deg,rgba(255,143,66,.16),rgba(255,255,255,.03))}
+.rcard::before{content:"\201C";position:absolute;right:22px;top:-6px;font:400 120px/1 var(--f-display);color:rgba(255,143,66,.22)}
+.rcard .st{color:var(--orange);letter-spacing:3px;font-size:16px}
+.rcard blockquote{margin:14px 0 22px;font-size:16.5px;line-height:1.55;color:rgba(255,255,255,.9);display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+.rcard footer{display:flex;align-items:center;gap:12px;font-size:14px}
+.rcard .av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font:600 15px/1 var(--f-text);color:#15130F;background:linear-gradient(140deg,#FFB27C,#FF8F42)}
+.rcard .nm{display:flex;flex-direction:column;gap:3px}
+.rcard .nm b{font-weight:600}
+.rcard .nm small{color:rgba(255,255,255,.5);font-size:12.5px}
+.rcard .g{margin-left:auto;font:700 18px/1 var(--f-text);color:#4285F4;background:#fff;width:28px;height:28px;border-radius:50%;display:grid;place-items:center}
+html.motion .rev-big,html.motion .rev-head h2,html.motion .rev-head p,html.motion .rev-ctas{opacity:0;transform:translateY(40px);transition:opacity 1s var(--ease),transform 1.2s var(--ease)}
+html.motion .rev.is-in .rev-big,html.motion .rev.is-in .rev-head h2,html.motion .rev.is-in .rev-head p,html.motion .rev.is-in .rev-ctas{opacity:1;transform:none}
+html.motion .rev.is-in .rev-head h2{transition-delay:.12s}html.motion .rev.is-in .rev-head p{transition-delay:.24s}html.motion .rev.is-in .rev-ctas{transition-delay:.36s}
+@media (max-width:860px){.rev-top{grid-template-columns:1fr;gap:34px}.rev-rows{gap:14px}.rev-row{gap:14px}.rcard{width:82vw;padding:22px}}
+@media (prefers-reduced-motion:reduce){.rev-rows{-webkit-mask:none;mask:none;overflow-x:auto}}
+
+/* Hero-Bewertung */
+.hrate{display:inline-flex;align-items:center;gap:12px;margin-top:22px;padding:10px 18px 10px 12px;border-radius:999px;background:#fff;border:1px solid var(--line);box-shadow:0 10px 30px -12px rgba(21,19,15,.22);text-decoration:none;color:var(--ink);transition:transform .4s var(--ease),box-shadow .4s,border-color .3s}
+.hrate:hover{transform:translateY(-2px);border-color:var(--orange);box-shadow:0 16px 40px -14px rgba(255,143,66,.55)}
+.hrate .gg{width:26px;height:26px;flex:none}
+.hrate>b{font:700 26px/1 var(--f-text);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.hs{display:flex;gap:2px}
+.hs i{width:17px;height:17px;background:var(--orange);clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);transform:scale(0);animation:starPop .5s var(--spring) forwards}
+.hs i:nth-child(1){animation-delay:.9s}.hs i:nth-child(2){animation-delay:1s}.hs i:nth-child(3){animation-delay:1.1s}.hs i:nth-child(4){animation-delay:1.2s}.hs i:nth-child(5){animation-delay:1.3s}
+@keyframes starPop{to{transform:scale(1)}}
+.ht{display:flex;flex-direction:column;line-height:1.15;padding-left:12px;border-left:1px solid var(--line)}
+.ht strong{font-size:14px;font-weight:600}.ht small{font-size:13px;color:var(--steel)}
+.harr{color:var(--orange-ink);font-weight:600;transition:transform .3s var(--ease)}
+.hrate:hover .harr{transform:translateX(4px)}
+@media (max-width:480px){.hrate{gap:9px;padding:8px 14px 8px 10px}.hrate>b{font-size:22px}.hs i{width:14px;height:14px}.ht strong{font-size:13px}.ht small{font-size:12px}.harr{display:none}}
+@media (prefers-reduced-motion:reduce){.hs i{animation:none;transform:none}}
+/* Footer */
+.ft{position:relative;overflow:hidden;background:#0E0D0C;color:#F4F1EC;padding-top:clamp(80px,10vw,140px)}
+.ft-glow{position:absolute;right:-15%;top:-30%;width:60vw;height:60vw;border-radius:50%;background:radial-gradient(closest-side,rgba(255,143,66,.22),rgba(255,143,66,0));pointer-events:none}
+.ft .wrap{position:relative;z-index:1}
+.ft .eyebrow{color:var(--orange)}
+.ft-cta{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:36px;padding-bottom:clamp(56px,7vw,90px);border-bottom:1px solid rgba(255,255,255,.1)}
+.ft-cta h2{font:400 clamp(52px,6.6vw,104px)/.9 var(--f-display);margin:14px 0 0;max-width:12ch;text-wrap:balance}
+.ft-cta h2 .o{color:var(--orange)}
+.ft-act{display:flex;flex-direction:column;gap:22px;align-items:flex-start}
+.ft-tel{display:flex;flex-direction:column;gap:6px;text-decoration:none;color:#fff}
+.ft-tel .mono{color:rgba(244,241,236,.5)}
+.ft-tel b{font:400 clamp(30px,3vw,42px)/1 var(--f-display);letter-spacing:.02em;transition:color .3s}
+.ft-tel:hover b{color:var(--orange)}
+.ft-cols{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:40px;padding-block:clamp(48px,6vw,80px)}
+.ft h4{margin:0 0 16px;color:rgba(244,241,236,.45)}
+.ft p{margin:0;line-height:1.85;color:rgba(244,241,236,.82)}
+.ft-cols a{color:inherit;text-decoration:none;background:linear-gradient(var(--orange),var(--orange)) 0 100%/0 1px no-repeat;transition:background-size .4s var(--ease),color .3s}
+.ft-cols a:hover{color:#fff;background-size:100% 1px}
+.ft-brand .logo{display:inline-flex;align-items:center;gap:12px;text-decoration:none;color:#fff;background:none!important}
+.ft-brand .logo svg{width:40px}
+.ft-brand .logo b{font:400 28px/1 var(--f-display);letter-spacing:.04em;display:block}
+.ft-brand .logo b i{font-style:normal;color:var(--orange)}
+.ft-brand .logo small{display:block;font-size:12px;color:rgba(244,241,236,.55);margin-top:3px}
+.ft-brand p{max-width:28em;margin-top:18px;color:rgba(244,241,236,.6)}
+.ft-rate{display:inline-flex!important;align-items:center;gap:8px;margin-top:22px;padding:8px 14px 8px 9px;border-radius:999px;background:rgba(255,255,255,.06)!important;border:1px solid rgba(255,255,255,.12);transition:border-color .3s!important}
+.ft-rate:hover{border-color:var(--orange)}
+.ft-rate .gg{width:18px;height:18px;background:#fff;border-radius:50%;padding:2px}
+.ft-rate b{font-weight:700}.ft-rate span{color:var(--orange);letter-spacing:1px;font-size:13px}.ft-rate small{color:rgba(244,241,236,.6);font-size:13px}
+.ft-word{position:relative;z-index:1;display:flex;justify-content:center;font:400 clamp(120px,27vw,460px)/1 var(--f-display);letter-spacing:.01em;white-space:nowrap;user-select:none;margin-top:-.08em;margin-bottom:-.2em;transform:translateY(var(--wy,0px));-webkit-mask-image:linear-gradient(180deg,#000 25%,rgba(0,0,0,.15) 78%,transparent 92%);mask-image:linear-gradient(180deg,#000 25%,rgba(0,0,0,.15) 78%,transparent 92%)}
+.ft-word span{color:rgba(244,241,236,.07);-webkit-text-stroke:1.5px rgba(244,241,236,.22)}
+.ft-word .o{color:rgba(255,143,66,.28);-webkit-text-stroke:1.5px rgba(255,143,66,.7)}
+.ft-bar{position:relative;z-index:2;background:#0E0D0C;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:14px;border-top:1px solid rgba(255,255,255,.1);padding-block:22px 28px;font-size:13.5px;color:rgba(244,241,236,.5)}
+.ft-bar nav{display:flex;gap:22px}
+.ft-bar a{color:inherit;text-decoration:none;transition:color .3s}.ft-bar a:hover{color:#fff}
+.ft-top{color:var(--orange)!important}
+@media (max-width:860px){.ft-cols{grid-template-columns:1fr 1fr}.ft-brand{grid-column:1/-1}}
+@media (max-width:480px){.ft-cols{grid-template-columns:1fr;gap:30px}.ft-word{font-size:27vw}}
+
+/* ── Hallen-Atmosphäre (Hero + Ablauf) ── */
+.hall{position:relative;isolation:isolate;background:
+  radial-gradient(70% 55% at 50% 0%,rgba(255,252,246,.95),rgba(255,252,246,0) 70%),
+  linear-gradient(180deg,#E6E2DC 0%,#EFECE7 38%,#E4E0D9 100%)}
+.hall>.hx{position:absolute;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+.hall>.hx::before{content:"";position:absolute;inset:0;opacity:.22;mix-blend-mode:multiply;background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>")}
+.hall>.hx i{position:absolute;display:block}
+/* Deckenträger */
+.hx .truss{left:0;right:0;top:0;height:clamp(54px,6vw,86px);background:
+  repeating-linear-gradient(90deg,transparent 0 46px,rgba(21,19,15,.5) 46px 48px,transparent 48px 96px),
+  linear-gradient(180deg,#1C1A17 0 14px,transparent 14px calc(100% - 4px),#2A2723 calc(100% - 4px));
+  -webkit-mask:linear-gradient(180deg,#000,rgba(0,0,0,.85));opacity:.9}
+.hx .truss::after{content:"";position:absolute;left:0;right:0;top:14px;bottom:4px;background:repeating-linear-gradient(60deg,transparent 0 30px,rgba(21,19,15,.38) 30px 32px,transparent 32px 56px),repeating-linear-gradient(-60deg,transparent 0 30px,rgba(21,19,15,.38) 30px 32px,transparent 32px 56px)}
+/* Lampen + Lichtkegel */
+.hx .lamp{top:clamp(54px,6vw,86px);width:120px;height:8px;margin-left:-60px;border-radius:0 0 6px 6px;background:#24211D;box-shadow:0 3px 0 rgba(255,236,210,.9),0 6px 26px 6px rgba(255,214,170,.55)}
+.hx .cone{top:clamp(62px,6.6vw,94px);width:min(46vw,640px);height:80%;transform:translateX(-50%);background:linear-gradient(180deg,rgba(255,240,220,.75),rgba(255,240,220,0) 85%);clip-path:polygon(43% 0,57% 0,100% 100%,0 100%);opacity:.75;animation:hum 6s ease-in-out infinite}
+.hx .far.cone{animation-delay:-2.3s}
+@keyframes hum{0%,100%{opacity:.75}50%{opacity:.6}}
+/* Stützen links/rechts */
+.hx .col{top:0;bottom:0;width:clamp(18px,2vw,30px);background:linear-gradient(90deg,#15130F,#3A3632 45%,#1E1C19);box-shadow:0 0 60px 20px rgba(21,19,15,.18)}
+.hx .col.l{left:0}.hx .col.r{right:0}
+.hx .col::after{content:"";position:absolute;left:0;right:0;bottom:16%;height:120px;background:repeating-linear-gradient(-45deg,#FF8F42 0 14px,#15130F 14px 28px);opacity:.9}
+/* Vignette */
+.hx .vig{inset:0;background:radial-gradient(130% 95% at 50% 35%,transparent 55%,rgba(21,19,15,.32) 100%)}
+/* Hallenboden mit Markierung */
+.hx .floor{left:0;right:0;bottom:0;height:clamp(34px,4vw,56px);background:linear-gradient(180deg,#2B2824,#161411);border-top:1px solid rgba(255,255,255,.08)}
+.hx .floor::before{content:"";position:absolute;left:0;right:0;top:0;height:8px;background:repeating-linear-gradient(-45deg,#FF8F42 0 16px,#15130F 16px 32px)}
+.hx .floor::after{content:"";position:absolute;left:0;right:0;top:55%;height:3px;background:repeating-linear-gradient(90deg,rgba(255,143,66,.8) 0 60px,transparent 60px 120px)}
+.hero.hall{padding-top:clamp(84px,8vw,120px);padding-bottom:clamp(100px,10vw,150px)}
+.flow.hall{padding-top:clamp(120px,12vw,180px);padding-bottom:clamp(110px,12vw,170px)}
+.hall .wrap{position:relative;z-index:1}
+.flow.hall .screen{box-shadow:0 40px 80px -30px rgba(21,19,15,.45);border-color:rgba(21,19,15,.12)}
+@media (max-width:760px){.hall>.hx .col,.hall>.hx .far{display:none}.hall>.hx .cone{width:90vw}}
+@media (prefers-reduced-motion:reduce){.hx .cone{animation:none}}
+</style>
+
+<a class="skip" href="#form">Zum Formular springen</a>
+
+<header class="hdr" id="hdr">
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="BEVMAQ Startseite">
+      <svg viewBox="0 0 44 40" aria-hidden="true"><g fill="#15130F"><path d="M8 2h3v6c0 1 3 3 3 6v24H5V14c0-3 3-5 3-6z"/><path d="M20.5 2h3v6c0 1 3 3 3 6v24h-9V14c0-3 3-5 3-6z"/><path d="M33 2h3v6c0 1 3 3 3 6v24h-9V14c0-3 3-5 3-6z"/></g><rect x="0" y="22" width="44" height="5" fill="#FF8F42"/></svg>
+      <span><b>BEV<i>MAQ</i></b><small>Used Beverage Machines</small></span>
+    </a>
+    <nav aria-label="Hauptnavigation">
+      <a class="grate" href="#stimmen" aria-label="Google-Bewertung 4,9 von 5 aus 15 Rezensionen"><svg class="gg" viewBox="0 0 48 48" aria-hidden="true"><path fill="#4285F4" d="M45.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h11.8c-.5 2.7-2.1 5-4.4 6.6v5.5h7.1c4.2-3.8 6.6-9.5 6.6-16.1z"/><path fill="#34A853" d="M24 46c5.9 0 10.9-2 14.5-5.3l-7.1-5.5c-2 1.3-4.5 2.1-7.4 2.1-5.7 0-10.6-3.9-12.3-9.1H4.4v5.7C8 41.1 15.4 46 24 46z"/><path fill="#FBBC05" d="M11.7 28.2c-.4-1.3-.7-2.7-.7-4.2s.3-2.9.7-4.2v-5.7H4.4C2.9 17.1 2 20.4 2 24s.9 6.9 2.4 9.9l7.3-5.7z"/><path fill="#EA4335" d="M24 10.7c3.2 0 6.1 1.1 8.4 3.3l6.3-6.3C34.9 4.2 29.9 2 24 2 15.4 2 8 6.9 4.4 14.1l7.3 5.7c1.7-5.2 6.6-9.1 12.3-9.1z"/></svg><b>4,9</b><span class="gs" aria-hidden="true">★★★★★</span><small>15 Rezensionen</small></a>
+      <a href="#ablauf">Ablauf</a>
+      <a href="#kontakt">Kontakt</a>
+      <a class="tel" href="tel:+491739080414">+49 173 90 80 414</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+<section class="hero hall" aria-labelledby="h1">
+  <div class="hx" aria-hidden="true"><i class="truss"></i><i class="lamp" style="left:18%"></i><i class="cone" style="left:18%"></i><i class="lamp" style="left:50%"></i><i class="cone" style="left:50%"></i><i class="lamp far" style="left:82%"></i><i class="cone far" style="left:82%"></i><i class="col l"></i><i class="col r"></i><i class="vig"></i><i class="floor"></i></div>
+  <div class="wrap">
+    <div>
+      <span class="eyebrow mono" data-in style="--d:0">Maschinen verkaufen</span>
+      <h1 id="h1"><span class="ln"><span style="--d:0">Gebrauchte</span></span><span class="ln"><span style="--d:1">Getränke-</span></span><span class="ln"><span style="--d:2">maschinen</span></span><span class="ln"><span class="o liq" style="--d:3">verkaufen</span></span></h1>
+      <a class="hrate" href="#stimmen" data-in style="--d:1" aria-label="4,9 von 5 Sternen aus 15 Google-Rezensionen"><svg class="gg" viewBox="0 0 48 48" aria-hidden="true"><path fill="#4285F4" d="M45.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h11.8c-.5 2.7-2.1 5-4.4 6.6v5.5h7.1c4.2-3.8 6.6-9.5 6.6-16.1z"/><path fill="#34A853" d="M24 46c5.9 0 10.9-2 14.5-5.3l-7.1-5.5c-2 1.3-4.5 2.1-7.4 2.1-5.7 0-10.6-3.9-12.3-9.1H4.4v5.7C8 41.1 15.4 46 24 46z"/><path fill="#FBBC05" d="M11.7 28.2c-.4-1.3-.7-2.7-.7-4.2s.3-2.9.7-4.2v-5.7H4.4C2.9 17.1 2 20.4 2 24s.9 6.9 2.4 9.9l7.3-5.7z"/><path fill="#EA4335" d="M24 10.7c3.2 0 6.1 1.1 8.4 3.3l6.3-6.3C34.9 4.2 29.9 2 24 2 15.4 2 8 6.9 4.4 14.1l7.3 5.7c1.7-5.2 6.6-9.1 12.3-9.1z"/></svg><b>4,9</b><span class="hs" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span class="ht"><strong>Google-Bewertung</strong><small>aus 15 Rezensionen</small></span><span class="harr" aria-hidden="true">→</span></a>
+      <p class="lead" data-in style="--d:1">Problemlos und zu bestmöglichen Marktpreisen. <strong>Senden Sie uns Ihre Maschinendaten</strong> und erhalten Sie eine erste Marktwerteinschätzung.</p>
+
+      <div class="plate-zone" id="plateZone" aria-hidden="true">
+        <div class="plate" id="plate">
+          <i class="rivet"></i><i class="rivet"></i><i class="rivet"></i><i class="rivet"></i>
+          <div class="plate-top"><b>BEV<i>MAQ</i></b><span class="mono">Typenschild · Ankauf</span></div>
+          <dl>
+            <div><dt>Maschine</dt><dd data-p="typ" class="empty">—</dd></div>
+            <div><dt>Hersteller</dt><dd data-p="hersteller" class="empty">—</dd></div>
+            <div><dt>Modell</dt><dd data-p="modell" class="empty">—</dd></div>
+            <div><dt>Baujahr</dt><dd data-p="baujahr" class="empty">—</dd></div>
+            <div><dt>Zustand</dt><dd data-p="zustand" class="empty">—</dd></div>
+            <div><dt>Standort</dt><dd data-p="standort" class="empty">—</dd></div>
+            <div class="full"><dt>Verkäufer</dt><dd data-p="firma" class="empty">—</dd></div>
+          </dl>
+          <div class="plate-foot mono"><span>Made in Menslage · DE</span><span id="plateDate">Nr. —</span></div>
+          <div class="stamp">Angefragt<small>Marktwert folgt</small></div>
+        </div>
+      </div>
+
+      <div class="trust" data-in style="--d:2">
+        <span><svg viewBox="0 0 16 16" fill="none" stroke="#B4500C" stroke-width="1.5"><path d="M3 8.5l3 3 7-7"/></svg>Unverbindlich</span>
+        <span><svg viewBox="0 0 16 16" fill="none" stroke="#B4500C" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/></svg>5 kurze Schritte, rund 1 Minute</span>
+        <span><svg viewBox="0 0 16 16" fill="none" stroke="#B4500C" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M2 8h12M8 2c2 2 2 10 0 12M8 2c-2 2-2 10 0 12"/></svg>Weltweite Vermarktung</span>
+      </div>
+    </div>
+
+    <!-- FORMULAR ─────────────────────── -->
+    <div class="formcard" id="form">
+      <div class="fc-head">
+        <div>
+          <span class="mono" id="stepLabel">Schritt 1 von 5</span>
+          <h2>Senden Sie uns Ihre Maschinendaten</h2>
+        </div>
+        <div class="bottles" id="bottles" aria-hidden="true"></div>
+      </div>
+      <div class="mini" id="mini" aria-hidden="true"></div>
+
+      <form id="sell" novalidate>
+        <div class="steps" id="steps">
+
+          <!-- 1 Maschinentyp -->
+          <fieldset class="step is-on" data-step="0" style="border:0;margin:0">
+            <legend class="sr" style="position:absolute;left:-9999px">Maschinentyp</legend>
+            <span class="mono q-no">01 · Maschine</span>
+            <p class="q">Welche Maschine möchten Sie verkaufen?</p>
+            <p class="hint">Ein Klick genügt. Tasten 1 bis 9 funktionieren auch.</p>
+            <div class="chips tall" role="radiogroup" aria-label="Maschinentyp" data-name="typ">
+              <button type="button" class="chip" role="radio" aria-checked="false" data-v="Füller"><svg viewBox="0 0 24 24"><path d="M4 20h16M6 20V10h12v10M9 10V6h6v4M12 6V3"/><path d="M9 14v3M12 14v3M15 14v3"/></svg>Füller<kbd>1</kbd></button>
+              <button type="button" class="chip" role="radio" aria-checked="false" data-v="Etikettierer"><svg viewBox="0 0 24 24"><path d="M9 3h6v4l2 3v11H7V10l2-3z"/><path d="M7 13h10v4H7z"/></svg>Etikettierer<kbd>2</kbd></button>
+              <button type="button" class="chip" role="radio" aria-checked="false" data-v="Blasformmaschine"><svg viewBox="0 0 24 24"><path d="M10 3h4v3l2 3v12H8V9l2-3z"/><path d="M4 12h2M18 12h2M4 16h2M18 16h2"/></svg>Blasform&shy;maschine<kbd>3</kbd></button>
+              <button type="button" class="chip" role="radio" aria-checked="false" data-v="Rinser / Waschmaschine"><svg viewBox="0 0 24 24"><path d="M10 9h4v12h-4z"/><path d="M12 9V3M8 5l1 2M16 5l-1 2M6 9l2 1M18 9l-2 1"/></svg>Rinser / Wäscher<kbd>4</kbd></button>
+              <button type="button" class="chip" role="radio" aria-checked="false" data-v="Verschließer"><svg viewBox="0 0 24 24"><path d="M9 10h6v11H9z"/><path d="M8 7h8v3H8zM12 7V3M9 3h6"/></svg>Verschließer<kbd>5</kbd></button>
+              <button type="button" class="chip" role="radio" aria-checked="false" data-v="Packer"><svg viewBox="0 0 24 24"><path d="M4 9l8-4 8 4v10l-8 4-8-4z"/><path d="M4 9l8 4 8-4M12 13v10"/></svg>Packer<kbd>6</kbd></button>
+              <button type="button" class="chip" role="radio" aria-checked="false" data-v="Palettierer"><svg viewBox="0 0 24 24"><path d="M3 20h18M5 20v-2h14v2"/><path d="M6 18v-5h5v5M13 18v-5h5v5M8 13V8h8v5"/></svg>Palettierer<kbd>7</kbd></button>
+              <button type="button" class="chip" role="radio" aria-checked="false" data-v="Komplette Linie"><svg viewBox="0 0 24 24"><path d="M2 17h20"/><path d="M4 17v-5M8 17v-7M12 17v-4M16 17v-8M20 17v-5"/><circle cx="6" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg>Komplette Linie<kbd>8</kbd></button>
+              <button type="button" class="chip" role="radio" aria-checked="false" data-v="Andere Maschine"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M8 12h8"/></svg>Andere<kbd>9</kbd></button>
+            </div>
+            <span class="err" id="err-typ" role="alert"></span>
+            <div class="nav"><span></span><span class="enter">Auswahl geht automatisch weiter</span></div>
+          </fieldset>
+
+          <!-- 2 Hersteller -->
+          <fieldset class="step" data-step="1" style="border:0;margin:0">
+            <legend style="position:absolute;left:-9999px">Hersteller</legend>
+            <span class="mono q-no">02 · Hersteller</span>
+            <p class="q">Von welchem Hersteller stammt sie?</p>
+            <p class="hint">Häufige Hersteller zum Antippen, alle anderen einfach eintippen.</p>
+            <div class="chips two" role="radiogroup" aria-label="Hersteller" data-name="hersteller">
+              <button type="button" class="chip" role="radio" aria-checked="false" data-v="Krones"><kbd>1</kbd>Krones</button>
+              <button type="button" class="chip" role="radio" aria-checked="false" data-v="KHS"><kbd>2</kbd>KHS</button>
+              <button type="button" class="chip" role="radio" aria-checked="false" data-v="Sidel"><kbd>3</kbd>Sidel</button>
+              <button type="button" class="chip" role="radio" aria-checked="false" data-v="SMI"><kbd>4</kbd>SMI</button>
+              <button type="button" class="chip" role="radio" aria-checked="false" data-v="Sacmi"><kbd>5</kbd>Sacmi</button>
+              <button type="button" class="chip" role="radio" aria-checked="false" data-v="__other"><kbd>6</kbd>Anderer</button>
+            </div>
+            <div class="field other" id="herstellerOther">
+              <label for="f-hersteller">Hersteller</label>
+              <input class="input" id="f-hersteller" name="hersteller_text" autocomplete="off" placeholder="z. B. Gebo Cermex, Kosme, Serac">
+            </div>
+            <span class="err" id="err-hersteller" role="alert"></span>
+            <div class="nav"><button type="button" class="back" data-back>← Zurück</button><button type="button" class="next" data-next>Weiter <span class="arr">→</span></button></div>
+          </fieldset>
+
+          <!-- 3 Modell + Baujahr -->
+          <fieldset class="step" data-step="2" style="border:0;margin:0">
+            <legend style="position:absolute;left:-9999px">Modell und Baujahr</legend>
+            <span class="mono q-no">03 · Modell &amp; Baujahr</span>
+            <p class="q">Welches Modell, welches Baujahr?</p>
+            <div class="field">
+              <label for="f-modell">Modell</label>
+              <input class="input" id="f-modell" name="modell" autocomplete="off" placeholder="Bezeichnung laut Typenschild">
+              <span class="err" id="err-modell" role="alert"></span>
+            </div>
+            <div class="year">
+              <div class="year-top">
+                <label for="f-baujahr" style="font-size:13px;font-weight:600">Baujahr<br><input class="year-num" id="f-baujahr" name="baujahr" type="number" inputmode="numeric" min="1970" max="2026" value="2012"></label>
+                <span class="year-age" id="yearAge">14 Jahre im Einsatz</span>
+              </div>
+              <div class="ruler" id="ruler">
+                <div class="ticks"></div><div class="fill"></div><div class="pin"></div>
+                <input type="range" id="f-baujahr-range" min="1970" max="2026" step="1" value="2012" aria-label="Baujahr wählen">
+                <div class="labels"><span>1970</span><span>1984</span><span>1998</span><span>2012</span><span>2026</span></div>
+              </div>
+            </div>
+            <div class="nav"><button type="button" class="back" data-back>← Zurück</button><span style="display:flex;align-items:center;gap:14px"><span class="enter"><kbd>Enter ↵</kbd></span><button type="button" class="next" data-next>Weiter <span class="arr">→</span></button></span></div>
+          </fieldset>
+
+          <!-- 4 Zustand / Standort (optional) -->
+          <fieldset class="step" data-step="3" style="border:0;margin:0">
+            <legend style="position:absolute;left:-9999px">Zustand und Standort</legend>
+            <span class="mono q-no">04 · Details · optional</span>
+            <p class="q">Wo und wie steht die Maschine?</p>
+            <p class="hint">Hilft bei der Einschätzung. Sie können diesen Schritt auch überspringen.</p>
+            <div class="chips two" role="radiogroup" aria-label="Zustand" data-name="zustand" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+              <button type="button" class="chip" role="radio" aria-checked="false" data-v="In Produktion"><kbd>1</kbd>In Produktion</button>
+              <button type="button" class="chip" role="radio" aria-checked="false" data-v="Abgebaut, eingelagert"><kbd>2</kbd>Abgebaut, eingelagert</button>
+              <button type="button" class="chip" role="radio" aria-checked="false" data-v="Außer Betrieb"><kbd>3</kbd>Außer Betrieb</button>
+            </div>
+            <div class="field">
+              <label for="f-standort">Standort <span>(Land, Ort)</span></label>
+              <input class="input" id="f-standort" name="standort" autocomplete="address-level2" placeholder="z. B. Deutschland, Menslage">
+            </div>
+            <label class="drop" id="drop" for="f-fotos">
+              <svg viewBox="0 0 24 24"><path d="M4 16v3h16v-3M12 4v11M7 9l5-5 5 5"/></svg>
+              <span><b>Fotos hinzufügen</b><span>Typenschild, Gesamtansicht. Ziehen oder tippen.</span></span>
+              <input type="file" id="f-fotos" name="fotos" accept="image/*" multiple>
+            </label>
+            <div class="thumbs" id="thumbs"></div>
+            <div class="nav"><button type="button" class="back" data-back>← Zurück</button><span style="display:flex;align-items:center;gap:6px"><button type="button" class="skipstep" data-next>Überspringen</button><button type="button" class="next" data-next>Weiter <span class="arr">→</span></button></span></div>
+          </fieldset>
+
+          <!-- 5 Kontakt -->
+          <fieldset class="step" data-step="4" style="border:0;margin:0">
+            <legend style="position:absolute;left:-9999px">Kontaktdaten</legend>
+            <span class="mono q-no">05 · Kontakt</span>
+            <p class="q">Wohin dürfen wir die Einschätzung schicken?</p>
+            <div class="grid2">
+              <div class="field"><label for="f-name">Name</label><input class="input" id="f-name" name="name" autocomplete="name" placeholder="Vor- und Nachname"><span class="err" id="err-name" role="alert"></span></div>
+              <div class="field"><label for="f-firma">Unternehmen</label><input class="input" id="f-firma" name="firma" autocomplete="organization" placeholder="Brauerei, Abfüller …"><span class="err" id="err-firma" role="alert"></span></div>
+              <div class="field"><label for="f-email">E-Mail</label><input class="input" id="f-email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="name@firma.de"><span class="err" id="err-email" role="alert"></span></div>
+              <div class="field"><label for="f-tel">Telefon <span>(optional)</span></label><input class="input" id="f-tel" name="tel" type="tel" autocomplete="tel" inputmode="tel" placeholder="+49 …"></div>
+            </div>
+            <p class="legal">Mit dem Absenden verarbeiten wir Ihre Angaben zur Bearbeitung Ihrer Anfrage. Details in der <a href="https://www.bevmaq.de/datenschutz/" target="_blank" rel="noopener">Datenschutzerklärung</a>.</p>
+            <div class="nav"><button type="button" class="back" data-back>← Zurück</button><button type="submit" class="next primary">Marktwert anfragen <span class="arr">→</span></button></div>
+          </fieldset>
+
+          <!-- Erfolg -->
+          <div class="step success" data-step="5" aria-live="polite">
+            <div class="check"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+            <span class="mono q-no">Anfrage eingegangen</span>
+            <p class="q" id="thanks">Danke. Ihre Maschine ist bei uns.</p>
+            <p class="hint" style="margin:0">Wir prüfen Ihre Angaben und melden uns mit einer ersten Marktwerteinschätzung.</p>
+            <dl class="recap" id="recap"></dl>
+            <p class="proto mono">Prototyp: Es wurden keine Daten übertragen.</p>
+            <div class="nav"><button type="button" class="back" id="restart">Weitere Maschine anfragen</button><span></span></div>
+          </div>
+
+        </div>
+      </form>
+    </div>
+  </div>
+
+</section>
+
+<!-- KOMPLETTANLAGE · 3D-Film ─────────── -->
+<div class="film-fade" aria-hidden="true"></div>
+<section class="film" id="anlage" aria-labelledby="film-h">
+  <div class="film-pin">
+    <div class="film-stage" id="filmStage" aria-hidden="true"></div>
+    <div class="film-vig" aria-hidden="true"></div>
+    <div class="film-bar top" aria-hidden="true"></div><div class="film-bar bot" aria-hidden="true"></div>
+    <div class="film-flash" id="filmFlash" aria-hidden="true"></div>
+    <div class="film-hud mono" aria-hidden="true">
+      <span><i class="rec"></i>BEVMAQ · Komplettanlage</span>
+      <span>Szene <b id="fScene">01</b> / 10 <em>·</em> TC <b id="fTc">00:00:00:00</b></span>
+    </div>
+    <div class="wrap film-wrap">
+      <div class="film-intro">
+        <span class="eyebrow mono">Komplettanlagen</span>
+        <h2 class="big" id="film-h">Eine ganze Linie.<br><span class="o">Ein Ansprechpartner.</span></h2>
+        <p>Tauchen Sie ein: Scrollen Sie durch eine komplette PET-Abfülllinie, von der Preform bis zur fertigen Palette.</p>
+        <span class="scrollhint mono">Film starten · scrollen</span>
+      </div>
+      <div class="film-chap" id="fChap">
+        <span class="fc-no" id="fcNo">01</span>
+        <div class="fc-body">
+          <span class="mono fc-ex" id="fcEx">Infrarot-Ofen</span>
+          <h3 id="fcName">Streckblasmaschine</h3>
+          <p id="fcTxt">Preforms laufen durch den Ofen und werden auf Blastemperatur gebracht.</p>
+        </div>
+      </div>
+      <div class="film-count mono" aria-hidden="true">Flaschen in diesem Film<b id="fCount">0</b></div>
+      <div class="film-outro">
+        <span class="eyebrow mono">Einzeln oder komplett</span>
+        <h2 class="big">Jede Station hat<br><span class="o">einen Käufer.</span></h2>
+        <p>Wir bewerten und vermarkten einzelne Maschinen genauso wie ganze Linien.</p>
+        <a class="next primary" href="#form" data-toform style="text-decoration:none">Maschinendaten senden <span class="arr">→</span></a>
+      </div>
+      <ol class="film-fallback mono">
+        <li>01 Streckblasmaschine</li><li>02 Füller</li><li>03 Verschließer</li><li>04 Inspektion</li><li>05 Etikettierer</li><li>06 Packer</li><li>07 Palettierer</li>
+      </ol>
+    </div>
+    <div class="film-prog" id="fProg" aria-hidden="true"></div>
+  </div>
+</section>
+<div class="film-fade rev" aria-hidden="true"></div>
+
+<div class="marquee" aria-hidden="true"><div class="mq-track" id="mq"></div></div>
+
+<!-- ABLAUF ─────────────────────────── -->
+<section class="flow hall" id="ablauf" aria-labelledby="ablauf-h">
+  <div class="hx" aria-hidden="true"><i class="truss"></i><i class="lamp" style="left:18%"></i><i class="cone" style="left:18%"></i><i class="lamp" style="left:50%"></i><i class="cone" style="left:50%"></i><i class="lamp far" style="left:82%"></i><i class="cone far" style="left:82%"></i><i class="col l"></i><i class="col r"></i><i class="vig"></i><i class="floor"></i></div>
+  <div class="wrap">
+    <div class="flow-head">
+      <div><span class="eyebrow mono">Wie ist der Ablauf?</span><h2 class="big" id="ablauf-h">Von Ihrer Halle<br><span class="o">in die Welt.</span></h2></div>
+      <p>Fünf Stationen, ein Ansprechpartner. Sie liefern die Daten, wir übernehmen Bewertung, Vermarktung, Bezahlung und Logistik.</p>
+    </div>
+    <div class="flow-body">
+      <ol class="stations" id="stations" style="list-style:none;margin:0">
+        <div class="rail" aria-hidden="true"><i></i></div>
+        <li class="station" data-i="0"><span class="dot">01</span><span class="tag mono">Station 01</span><h3>Maschinendaten senden</h3><p>Hersteller, Modell, Baujahr. Mehr brauchen wir für den Start nicht. Fotos und Standort helfen, sind aber freiwillig.</p></li>
+        <li class="station" data-i="1"><span class="dot">02</span><span class="tag mono">Station 02</span><h3>Marktwerteinschätzung</h3><p>Wir bewerten Ihre Maschine auf Basis aktueller Marktdaten und melden uns mit einer ersten Einschätzung.</p></li>
+        <li class="station" data-i="2"><span class="dot">03</span><span class="tag mono">Station 03</span><h3>Globale Vermarktung</h3><p>Wir bieten Ihre Maschine gezielt Käufern weltweit an, damit sie dort weiterläuft, wo sie gebraucht wird.</p></li>
+        <li class="station" data-i="3"><span class="dot">04</span><span class="tag mono">Station 04</span><h3>Sichere Bezahlung</h3><p>Klare Vereinbarungen und eine sichere Zahlungsabwicklung, bevor etwas Ihr Werk verlässt.</p></li>
+        <li class="station" data-i="4"><span class="dot">05</span><span class="tag mono">Station 05</span><h3>Professionelle Logistik</h3><p>Demontage, Verladung und Transport organisieren wir, auch international.</p></li>
+      </ol>
+      <div class="screen" id="screen" aria-hidden="true">
+        <div class="stage3d" id="stage3d"></div>
+        <div class="s-hud mono"><span>BEVMAQ · Ablauf</span><b id="capNo">01 / 05</b></div>
+        <div class="s-step" id="sStep">Maschinendaten senden</div>
+        <div class="nogl" id="nogl">01</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="rev" id="stimmen" aria-labelledby="rev-h">
+  <img src="{{HALL}}" alt="" aria-hidden="true" id="ctaImg">
+  <div class="rev-glow" aria-hidden="true"></div>
+  <div class="wrap rev-top">
+    <div class="rev-score">
+      <span class="eyebrow mono">Google-Rezensionen</span>
+      <div class="rev-big" aria-hidden="true"><b id="rvNum">0,0</b><small>/ 5</small></div>
+      <div class="rev-stars" id="rvStars" aria-hidden="true"></div>
+      <p class="rev-meta"><span class="gmark" aria-hidden="true"><i style="color:#4285F4">G</i><i style="color:#EA4335">o</i><i style="color:#FBBC05">o</i><i style="color:#4285F4">g</i><i style="color:#34A853">l</i><i style="color:#EA4335">e</i></span> <span id="rvMeta">Bewertungen werden geladen</span></p>
+    </div>
+    <div class="rev-head">
+      <h2 id="rev-h">Menschen, die BEVMAQ <span class="o">vertrauen.</span></h2>
+      <p>Hersteller, Abfüller und Händler, die ihre Maschinen über uns verkauft oder gekauft haben, sagen es selbst.</p>
+      <div class="rev-ctas">
+        <a class="next primary" href="#form" id="ctaBtn" style="text-decoration:none">Maschinendaten senden <span class="arr">→</span></a>
+        <a class="rev-link mono" id="rvLink" href="#" target="_blank" rel="noopener">Alle Rezensionen auf Google ↗</a>
+      </div>
+      <p class="rev-flag mono" id="rvFlag" hidden>Vorschau mit Platzhaltern · echte Rezensionen folgen</p>
+    </div>
+  </div>
+  <div class="rev-rows" id="rvRows" aria-label="Ausgewählte Rezensionen"></div>
+</section>
+</main>
+
+<footer class="ft" id="kontakt">
+  <div class="ft-glow" aria-hidden="true"></div>
+  <div class="wrap">
+    <div class="ft-cta">
+      <div>
+        <span class="eyebrow mono">Kontakt</span>
+        <h2>Bereit, Ihre Maschine <span class="o">zu verkaufen?</span></h2>
+      </div>
+      <div class="ft-act">
+        <a class="next primary" href="#form" data-toform style="text-decoration:none">Maschinendaten senden <span class="arr">→</span></a>
+        <a class="ft-tel" href="tel:+491739080414"><span class="mono">Oder direkt anrufen</span><b>+49 173 90 80 414</b></a>
+      </div>
+    </div>
+    <div class="ft-cols">
+      <div class="ft-brand">
+        <a class="logo" href="#top" aria-label="BEVMAQ">
+          <svg viewBox="0 0 44 40" aria-hidden="true"><g fill="#fff"><path d="M8 2h3v6c0 1 3 3 3 6v24H5V14c0-3 3-5 3-6z"/><path d="M20.5 2h3v6c0 1 3 3 3 6v24h-9V14c0-3 3-5 3-6z"/><path d="M33 2h3v6c0 1 3 3 3 6v24h-9V14c0-3 3-5 3-6z"/></g><rect x="0" y="22" width="44" height="5" fill="#FF8F42"/></svg>
+          <span><b>BEV<i>MAQ</i></b><small>Used Beverage Machines</small></span>
+        </a>
+        <p>Ankauf und Vermarktung gebrauchter Getränkemaschinen, von der Einzelmaschine bis zur kompletten Linie.</p>
+        <a class="ft-rate" href="#stimmen"><svg class="gg" viewBox="0 0 48 48" aria-hidden="true"><path fill="#4285F4" d="M45.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h11.8c-.5 2.7-2.1 5-4.4 6.6v5.5h7.1c4.2-3.8 6.6-9.5 6.6-16.1z"/><path fill="#34A853" d="M24 46c5.9 0 10.9-2 14.5-5.3l-7.1-5.5c-2 1.3-4.5 2.1-7.4 2.1-5.7 0-10.6-3.9-12.3-9.1H4.4v5.7C8 41.1 15.4 46 24 46z"/><path fill="#FBBC05" d="M11.7 28.2c-.4-1.3-.7-2.7-.7-4.2s.3-2.9.7-4.2v-5.7H4.4C2.9 17.1 2 20.4 2 24s.9 6.9 2.4 9.9l7.3-5.7z"/><path fill="#EA4335" d="M24 10.7c3.2 0 6.1 1.1 8.4 3.3l6.3-6.3C34.9 4.2 29.9 2 24 2 15.4 2 8 6.9 4.4 14.1l7.3 5.7c1.7-5.2 6.6-9.1 12.3-9.1z"/></svg><b>4,9</b><span>★★★★★</span><small>15 Google-Rezensionen</small></a>
+      </div>
+      <div><h4 class="mono">Adresse</h4><p>BEVMAQ GmbH<br>Mühlenhorst 8<br>49637 Menslage</p></div>
+      <div><h4 class="mono">Kontakt</h4><p><a href="tel:+491739080414">+49 173 90 80 414</a><br><a href="mailto:contact@bevmaq.com">contact@bevmaq.com</a></p></div>
+      <div><h4 class="mono">Seite</h4><p><a href="#form" data-toform>Maschine anbieten</a><br><a href="#anlage">Komplettanlage</a><br><a href="#ablauf">Ablauf</a><br><a href="#stimmen">Rezensionen</a></p></div>
+    </div>
+  </div>
+  <div class="ft-word" aria-hidden="true"><span>BEV</span><span class="o">MAQ</span></div>
+  <div class="wrap">
+    <div class="ft-bar">
+      <span>© 2026 BEVMAQ GmbH</span>
+      <nav aria-label="Rechtliches"><a href="https://www.bevmaq.de/impressum/" target="_blank" rel="noopener">Impressum</a><a href="https://www.bevmaq.de/datenschutz/" target="_blank" rel="noopener">Datenschutz</a><a href="https://www.bevmaq.de/agb/" target="_blank" rel="noopener">AGB</a></nav>
+      <a class="ft-top" href="#top">Nach oben ↑</a>
+    </div>
+  </div>
+</footer>
+
+{{THREE}}
+<script>{{A3D}}</script>
+<script>{{FILM}}</script>
+<script>
+(function(){
+  var root=document.documentElement;
+  var reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  root.classList.add('js'); if(!reduced) root.classList.add('motion');
+
+  /* ── Tuning ───────────────────────── */
+  var AUTO_ADVANCE_MS=420;   // Pause nach Chip-Klick bis zum nächsten Schritt
+  var YEAR_MIN=1970, YEAR_MAX=2026, THIS_YEAR=2026;
+  var TOTAL=5;
+
+  function $(s,c){return (c||document).querySelector(s)}
+  function $$(s,c){return Array.prototype.slice.call((c||document).querySelectorAll(s))}
+  function scene(name,fn){try{fn()}catch(e){console.warn('[scene]',name,e)}}
+
+  /* Header-Linie beim Scrollen */
+  var hdr=$('#hdr');
+  addEventListener('scroll',function(){hdr.classList.toggle('is-scrolled',scrollY>8)},{passive:true});
+
+  /* Telefon im Header */
+  var tel=$('.hdr .tel'); tel.setAttribute('href','tel:+491739080414'); tel.textContent='+49 173 90 80 414';
+
+  /* ── Flaschen-Fortschritt ─────────── */
+  var BOTTLE='<svg class="bottle" viewBox="0 0 15 40"><defs><clipPath id="bc{i}"><path d="M6 1h3v6c0 1 4.5 3.5 4.5 7.5V39h-12V14.5C1.5 10.5 6 8 6 7z"/></clipPath></defs><g clip-path="url(#bc{i})"><rect class="liquid" x="0" y="0" width="15" height="40" fill="#FF8F42"/><path class="wave" d="M0 26 Q3.75 24 7.5 26 T15 26 V40 H0Z" fill="#FFB27A"/></g><path class="body" d="M6 1h3v6c0 1 4.5 3.5 4.5 7.5V39h-12V14.5C1.5 10.5 6 8 6 7z"/></svg>';
+  var bottlesEl=$('#bottles');
+  for(var i=0;i<TOTAL;i++) bottlesEl.insertAdjacentHTML('beforeend',BOTTLE.replace(/\{i\}/g,i));
+  var bottles=$$('.bottle',bottlesEl);
+
+  /* ── State ────────────────────────── */
+  var state={typ:'',hersteller:'',modell:'',baujahr:2012,zustand:'',standort:'',fotos:0,name:'',firma:'',email:'',tel:''};
+  var STORE='bevmaq-verkaufen-draft';
+  try{var saved=JSON.parse(localStorage.getItem(STORE)||'null'); if(saved) Object.assign(state,saved,{fotos:0});}catch(e){}
+  function persist(){try{localStorage.setItem(STORE,JSON.stringify(state))}catch(e){}}
+
+  var steps=$$('.step'), cur=0;
+  var form=$('#sell');
+
+  /* Typenschild */
+  var plateMap={typ:'typ',hersteller:'hersteller',modell:'modell',baujahr:'baujahr',zustand:'zustand',standort:'standort',firma:'firma'};
+  function plateSet(key,val,engrave){
+    var dd=$('[data-p="'+key+'"]'); if(!dd) return;
+    var v=(val==null||val==='')?'—':String(val);
+    if(dd.textContent===v) return;
+    dd.textContent=v; dd.classList.toggle('empty',v==='—');
+    if(engrave&&!reduced){dd.classList.remove('engrave');void dd.offsetWidth;dd.classList.add('engrave')}
+  }
+  function live(key,on){var dd=$('[data-p="'+key+'"]'); if(dd) dd.classList.toggle('is-live',on)}
+  function mini(){
+    var m=$('#mini'),parts=[state.typ,state.hersteller,state.modell,state.baujahr&&cur>=2?state.baujahr:'' ].filter(Boolean);
+    m.innerHTML=parts.map(function(p){return '<span>'+esc(p)+'</span>'}).join('');
+  }
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+
+  /* Plattenneigung folgt dem Zeiger (fein, nur Desktop) */
+  scene('tilt',function(){
+    if(reduced||!matchMedia('(pointer:fine)').matches) return;
+    var p=$('#plate'),tx=0,ty=0,x=0,y=0,raf=0;
+    addEventListener('pointermove',function(e){tx=(e.clientX/innerWidth-.5)*6;ty=(e.clientY/innerHeight-.5)*-5;if(!raf)raf=requestAnimationFrame(loop)});
+    function loop(){x+=(tx-x)*.08;y+=(ty-y)*.08;p.style.setProperty('--ry',x.toFixed(2)+'deg');p.style.setProperty('--rx',y.toFixed(2)+'deg');raf=(Math.abs(tx-x)+Math.abs(ty-y)>.01)?requestAnimationFrame(loop):0}
+  });
+
+  /* ── Schritte ─────────────────────── */
+  function go(n,focus){
+    if(n===cur) return;
+    var from=steps[cur],to=steps[n];
+    from.classList.remove('is-on'); from.classList.toggle('is-out',n>cur);
+    to.classList.remove('is-out'); to.classList.add('is-on');
+    setTimeout(function(){from.classList.remove('is-out')},700);
+    cur=n;
+    $('#stepLabel').textContent=n<TOTAL?('Schritt '+(n+1)+' von '+TOTAL):'Fertig';
+    bottles.forEach(function(b,k){
+      var f=k<n?1:(k===n?.32:0);
+      b.style.setProperty('--f',f); $('.liquid',b).style.transform='scaleY('+f+')';
+      b.classList.toggle('is-full',k<n); b.classList.toggle('is-now',k===n);
+    });
+    mini();
+    if(focus!==false){
+      setTimeout(function(){
+        var t=$('.chip[aria-checked="true"]',to)||$('input:not([type=range]):not([type=file])',to)||$('.chip',to)||$('button',to);
+        if(t&&matchMedia('(pointer:fine)').matches) t.focus({preventScroll:true});
+      },380);
+    }
+    // auf Mobil: Formularkopf ins Bild holen
+    var card=$('#form'),r=card.getBoundingClientRect();
+    if(r.top<0||r.top>innerHeight*.5) card.scrollIntoView({behavior:reduced?'auto':'smooth',block:'start'});
+  }
+  go._init=function(){bottles.forEach(function(b,k){var f=k===0?.32:0;$('.liquid',b).style.transform='scaleY('+f+')';b.classList.toggle('is-now',k===0)})};
+  go._init();
+
+  function setErr(id,msg,input){
+    var e=$('#err-'+id); if(e) e.textContent=msg||'';
+    if(input) input.setAttribute('aria-invalid',msg?'true':'false');
+  }
+  function shake(el){if(reduced)return;el.classList.remove('shake');void el.offsetWidth;el.classList.add('shake')}
+
+  function validate(n){
+    var ok=true, s=steps[n];
+    if(n===0&&!state.typ){setErr('typ','Bitte wählen Sie einen Maschinentyp.');ok=false}
+    if(n===1){
+      var other=$('#f-hersteller').value.trim();
+      if(state.hersteller==='__other'||(!state.hersteller)){ if(other){state.hersteller='__other'} }
+      if(!state.hersteller||(state.hersteller==='__other'&&!other)){setErr('hersteller','Bitte wählen oder nennen Sie den Hersteller.',$('#f-hersteller'));ok=false}
+      else setErr('hersteller','',$('#f-hersteller'));
+    }
+    if(n===2){
+      var m=$('#f-modell'); if(!m.value.trim()){setErr('modell','Bitte geben Sie das Modell an. Ungefähr reicht.',m);ok=false} else setErr('modell','',m);
+    }
+    if(n===4){
+      var nm=$('#f-name'),fi=$('#f-firma'),em=$('#f-email');
+      if(!nm.value.trim()){setErr('name','Bitte geben Sie Ihren Namen an.',nm);ok=false}else setErr('name','',nm);
+      if(!fi.value.trim()){setErr('firma','Bitte geben Sie Ihr Unternehmen an.',fi);ok=false}else setErr('firma','',fi);
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em.value.trim())){setErr('email','Bitte prüfen Sie die E-Mail-Adresse.',em);ok=false}else setErr('email','',em);
+    }
+    if(!ok){shake(s); var bad=$('[aria-invalid="true"]',s); if(bad) bad.focus()}
+    return ok;
+  }
+  function next(){ if(cur<TOTAL-1&&validate(cur)) go(cur+1) }
+  function back(){ if(cur>0) go(cur-1) }
+
+  $$('[data-next]').forEach(function(b){b.addEventListener('click',next)});
+  $$('[data-back]').forEach(function(b){b.addEventListener('click',back)});
+
+  /* Chips */
+  $$('.chips').forEach(function(group){
+    var name=group.dataset.name, chips=$$('.chip',group);
+    chips.forEach(function(c){
+      c.addEventListener('click',function(){
+        chips.forEach(function(x){x.setAttribute('aria-checked',x===c?'true':'false')});
+        var v=c.dataset.v;
+        state[name]=v; persist();
+        if(name==='hersteller'){
+          var o=$('#herstellerOther'),inp=$('#f-hersteller');
+          o.classList.toggle('show',v==='__other');
+          setErr('hersteller','',inp);
+          if(v==='__other'){plateSet('hersteller',inp.value.trim(),true);inp.focus();return}
+          inp.value='';
+        }
+        if(name==='typ'){setErr('typ','');if(window.__hl)window.__hl(v)}
+        plateSet(name,v,true);
+        if(name==='typ'||name==='hersteller') setTimeout(function(){if(steps[cur].contains(c)) next()},AUTO_ADVANCE_MS);
+      });
+    });
+  });
+
+  /* Zifferntasten wählen Chips im aktiven Schritt, Enter geht weiter */
+  document.addEventListener('keydown',function(e){
+    var s=steps[cur]; if(!s||cur>=TOTAL) return;
+    var tag=(e.target.tagName||'').toLowerCase();
+    var typing=(tag==='input'&&e.target.type!=='range')||tag==='textarea';
+    if(!typing&&/^[1-9]$/.test(e.key)&&!e.metaKey&&!e.ctrlKey){
+      var c=$$('.chip',s)[+e.key-1]; if(c){c.click();c.focus({preventScroll:true});e.preventDefault()}
+    }
+    if(e.key==='Enter'&&typing&&cur<TOTAL-1){e.preventDefault();next()}
+  });
+
+  /* Textfelder → Typenschild */
+  function bindText(id,key,plateKey){
+    var el=$('#'+id); if(!el) return;
+    if(state[key]&&key!=='hersteller') el.value=state[key];
+    el.addEventListener('input',function(){
+      var v=el.value.trim();
+      if(key==='hersteller'){state.hersteller='__other';$$('.chip',$('[data-name=hersteller]')).forEach(function(x){x.setAttribute('aria-checked',x.dataset.v==='__other'?'true':'false')});$('#herstellerOther').classList.add('show')}
+      else state[key]=v;
+      persist(); if(plateKey) plateSet(plateKey,v,false);
+      if(el.getAttribute('aria-invalid')==='true'&&v) el.setAttribute('aria-invalid','false');
+      mini();
+    });
+    if(plateKey){el.addEventListener('focus',function(){live(plateKey,true)});el.addEventListener('blur',function(){live(plateKey,false)})}
+  }
+  bindText('f-hersteller','hersteller','hersteller');
+  bindText('f-modell','modell','modell');
+  bindText('f-standort','standort','standort');
+  bindText('f-name','name');
+  bindText('f-firma','firma','firma');
+  bindText('f-email','email');
+  bindText('f-tel','tel');
+
+  /* Baujahr: Lineal + Zahl */
+  scene('year',function(){
+    var num=$('#f-baujahr'),rng=$('#f-baujahr-range'),ruler=$('#ruler'),age=$('#yearAge');
+    function set(y,engrave){
+      y=Math.max(YEAR_MIN,Math.min(YEAR_MAX,Math.round(+y||2012)));
+      state.baujahr=y; persist();
+      rng.value=y; if(document.activeElement!==num) num.value=y;
+      ruler.style.setProperty('--y',((y-YEAR_MIN)/(YEAR_MAX-YEAR_MIN)).toFixed(4));
+      var a=THIS_YEAR-y; age.textContent=a<=0?'Neuwertig':(a===1?'1 Jahr im Einsatz':a+' Jahre im Einsatz');
+      plateSet('baujahr',y,engrave); mini();
+    }
+    rng.addEventListener('input',function(){set(rng.value,false)});
+    num.addEventListener('input',function(){if(String(num.value).length===4) set(num.value,true)});
+    num.addEventListener('blur',function(){set(num.value,false);num.value=state.baujahr});
+    rng.addEventListener('focus',function(){live('baujahr',true)});rng.addEventListener('blur',function(){live('baujahr',false)});
+    set(state.baujahr,false);
+    plateSet('baujahr','',false); // erst beim Erreichen von Schritt 3 prägen
+    var shown=false; new MutationObserver(function(){ if(!shown&&steps[2].classList.contains('is-on')){shown=true;set(state.baujahr,true)} }).observe(steps[2],{attributes:true,attributeFilter:['class']});
+  });
+
+  /* Fotos (nur Vorschau, kein Upload) */
+  scene('upload',function(){
+    var inp=$('#f-fotos'),drop=$('#drop'),th=$('#thumbs');
+    function add(files){
+      Array.prototype.slice.call(files||[]).filter(function(f){return /^image\//.test(f.type)}).slice(0,8).forEach(function(f){
+        var img=new Image(); img.alt='Vorschau '+f.name; img.src=URL.createObjectURL(f); th.appendChild(img); state.fotos++;
+      });
+      $('b',drop).textContent=state.fotos?state.fotos+' Foto'+(state.fotos>1?'s':'')+' hinzugefügt':'Fotos hinzufügen';
+    }
+    inp.addEventListener('change',function(){add(inp.files)});
+    ['dragenter','dragover'].forEach(function(t){drop.addEventListener(t,function(e){e.preventDefault();drop.classList.add('over')})});
+    ['dragleave','drop'].forEach(function(t){drop.addEventListener(t,function(e){e.preventDefault();drop.classList.remove('over')})});
+    drop.addEventListener('drop',function(e){add(e.dataTransfer&&e.dataTransfer.files)});
+  });
+
+  /* Gespeicherten Entwurf wiederherstellen */
+  scene('restore',function(){
+    ['typ','hersteller','zustand'].forEach(function(n){
+      var v=state[n]; if(!v) return;
+      var c=$('.chips[data-name="'+n+'"] .chip[data-v="'+v+'"]'); if(c) c.setAttribute('aria-checked','true');
+      if(n!=='hersteller'||v!=='__other') plateSet(n,v,false);
+    });
+    if(state.modell) plateSet('modell',state.modell);
+    if(state.standort) plateSet('standort',state.standort);
+    if(state.firma) plateSet('firma',state.firma);
+  });
+
+  /* Absenden (Prototyp: nichts wird übertragen) */
+  form.addEventListener('submit',function(e){
+    e.preventDefault();
+    if(!validate(4)) return;
+    var herst=state.hersteller==='__other'?$('#f-hersteller').value.trim():state.hersteller;
+    var rows=[['Maschine',state.typ],['Hersteller',herst],['Modell',state.modell],['Baujahr',state.baujahr],['Zustand',state.zustand],['Standort',state.standort],['Fotos',state.fotos?state.fotos:''],['Kontakt',state.name+', '+state.firma],['E-Mail',state.email],['Telefon',state.tel]];
+    $('#recap').innerHTML=rows.filter(function(r){return r[1]!==''&&r[1]!=null}).map(function(r){return '<dt>'+r[0]+'</dt><dd>'+esc(r[1])+'</dd>'}).join('');
+    var first=(state.name||'').split(' ')[0];
+    $('#thanks').textContent=first?('Danke, '+first+'. Ihre Maschine ist bei uns.'):'Danke. Ihre Maschine ist bei uns.';
+    var d=new Date(); $('#plateDate').textContent=d.toLocaleDateString('de-DE');
+    go(5,false);
+    bottles.forEach(function(b){$('.liquid',b).style.transform='scaleY(1)';b.classList.add('is-full');b.classList.remove('is-now')});
+    document.body.classList.add('done');
+    try{localStorage.removeItem(STORE)}catch(err){}
+    /* TODO Livegang: hier an eigenes Backend / CRM senden */
+  });
+  $('#restart').addEventListener('click',function(){
+    document.body.classList.remove('done');
+    Object.assign(state,{typ:'',hersteller:'',modell:'',baujahr:2012,zustand:'',standort:'',fotos:0});
+    $$('.chip').forEach(function(c){c.setAttribute('aria-checked','false')});
+    ['f-hersteller','f-modell','f-standort'].forEach(function(id){$('#'+id).value=''});
+    $('#thumbs').innerHTML=''; $('#herstellerOther').classList.remove('show');
+    ['typ','hersteller','modell','baujahr','zustand','standort'].forEach(function(k){plateSet(k,'')});
+    $('#f-baujahr').value=2012; $('#f-baujahr-range').dispatchEvent(new Event('input'));plateSet('baujahr','');
+    if(window.__hl)window.__hl('');
+    go(0);
+  });
+
+  /* ── Ablauf: aktive Station, Sticky-Screen, Schiene ── */
+  scene('flow',function(){
+    var st=$$('.station'),cap=$('#capNo'),step=$('#sStep'),rail=$('.rail i'),list=$('#stations'),scr=$('#screen');
+    var NAMES=['Maschinen<span>daten</span> senden','Markt<span>wert</span>','Global <span>vermarkten</span>','Sicher <span>bezahlt</span>','Profi-<span>Logistik</span>'];
+    var active=-1,a3=null,a3on=false;
+    function activate(i){
+      if(i===active) return; active=i;
+      st.forEach(function(s,k){s.classList.toggle('is-on',k===i);s.classList.toggle('is-past',k<i)});
+      cap.textContent='0'+(i+1)+' / 05';$('#nogl').textContent='0'+(i+1);
+      step.innerHTML=NAMES[i];step.classList.remove('swap');void step.offsetWidth;step.classList.add('swap');
+    }
+    activate(0);
+    var mobQ=matchMedia('(max-width:1060px)');
+    function anchor(){return mobQ.matches?.76:.5}
+    function pick(){var a=innerHeight*anchor(),best=0;st.forEach(function(s,k){if(s.getBoundingClientRect().top<a)best=k});activate(best)}
+    function init3d(){
+      if(a3) return;
+      if(!window.THREE||!window.Ablauf3D){scr.classList.add('nogl');return}
+      try{a3=Ablauf3D($('#stage3d'),{reduced:reduced})}catch(e){console.warn(e);scr.classList.add('nogl')}
+      if(!a3) scr.classList.add('nogl');
+    }
+    new IntersectionObserver(function(es){var v=es[0].isIntersecting;if(v)init3d();if(a3){if(v){a3.start();a3on=true}else{a3.stop();a3on=false}}},{rootMargin:'600px 0px'}).observe(scr.parentNode);
+    var p=0,s=0,raf=0;
+    function measure(){var r=list.getBoundingClientRect();p=Math.max(0,Math.min(1,(innerHeight*anchor()-r.top)/r.height));pick()}
+    function loop(){s+=(p-s)*.14;rail.style.setProperty('--p',s.toFixed(4));
+      if(a3) a3.set(p*5-.5);
+      var img=$('#ctaImg'),cr=img.parentNode.getBoundingClientRect(); if(!reduced&&cr.top<innerHeight&&cr.bottom>0) img.style.setProperty('--py',((cr.top/innerHeight)*-60).toFixed(1)+'px');
+      raf=Math.abs(p-s)>.0005?requestAnimationFrame(loop):0}
+    function onScroll(){measure();if(a3)a3.set(p*5-.5);if(!raf&&!document.hidden)raf=requestAnimationFrame(loop)}
+    addEventListener('scroll',onScroll,{passive:true});addEventListener('resize',onScroll);onScroll();
+  });
+
+  /* ── Anlage: gemeinsame Uhr ─────────── */
+  var T0=performance.now()/1000-38;           // Start mitten im Betrieb (Palette halb voll)
+  function now(){return reduced?38:performance.now()/1000-T0}
+  function visible(el,cb){if(!('IntersectionObserver' in window)){cb(true);return}new IntersectionObserver(function(es){cb(es[0].isIntersecting)},{rootMargin:'120px'}).observe(el)}
+  var HLMAP={'Füller':'fill','Etikettierer':'lab','Blasformmaschine':'blow','Verschließer':'cap','Packer':'pack','Palettierer':'pal','Komplette Linie':'all'};
+  var HLNAME={fill:'Füller',lab:'Etikettierer',blow:'Streckblasmaschine',cap:'Verschließer',pack:'Packer',pal:'Palettierer',all:'Komplette Linie'};
+  var heroL=null;
+
+  /* ── 3D-Film durch die Komplettanlage ── */
+  scene('film',function(){
+    var sec=$('#anlage'),stage=$('#filmStage'),flash=$('#filmFlash'),chap=$('#fChap'),prog=$('#fProg'),film=null,p=0,raf=0;
+    var INFO={
+      blow:['01','Infrarot-Ofen','Streckblasmaschine','Preforms laufen durch den Ofen und werden auf Blastemperatur gebracht.'],
+      wheel:['01','z. B. Krones Contiform','Blasrad','Im Blasrad wird jede Preform in Sekundenbruchteilen zur Flasche.'],
+      fill:['02','z. B. Krones Modulfill','Füller','Ventil für Ventil im Rundlauf. Wir fahren mit.'],
+      cap:['03','Deckelrutsche','Verschließer','Deckel rutschen nach und werden aufgesetzt und verschlossen.'],
+      insp:['04','z. B. Krones Checkmat','Inspektion','Laser prüfen Füllhöhe und Verschluss jeder einzelnen Flasche.'],
+      lab:['05','z. B. Krones Ergomatic','Etikettierer','Etiketten laufen von der Rolle und werden rundum aufgebracht.'],
+      pack:['06','z. B. Krones Variopac','Packer','Sechserpacks in Folie, geschrumpft im glühenden Tunnel.'],
+      pal:['07','z. B. Krones Modulpal','Palettierer','Lage für Lage auf die Palette, bereit für die Welt.']
+    };
+    for(var k=0;k<10;k++)prog.insertAdjacentHTML('beforeend','<i><b></b></i>');
+    var segs=$$('i',prog),cnt=$('#fCount'),fmt=new Intl.NumberFormat('de-DE');
+    function ssn(a,b,x){x=Math.max(0,Math.min(1,(x-a)/(b-a)));return x*x*(3-2*x)}
+    function onShot(i,name){
+      $('#fScene').textContent=(i<9?'0':'')+(i+1);
+      var I=INFO[name];if(!I)return;
+      $('#fcNo').textContent=I[0];$('#fcEx').textContent=I[1];$('#fcName').textContent=I[2];$('#fcTxt').textContent=I[3];
+      chap.classList.remove('swap');void chap.offsetWidth;chap.classList.add('swap');
+    }
+    function init(){
+      if(film)return;
+      if(!window.THREE||!window.AnlageFilm||!root.classList.contains('motion')){sec.classList.add('nofilm');return}
+      try{film=AnlageFilm(stage,{reduced:reduced,onShot:onShot,
+        onFlash:function(f){flash.style.setProperty('--flash',(f*.45).toFixed(3))},
+        onTick:function(t,n){cnt.textContent=fmt.format(n)}})}catch(e){console.warn(e)}
+      if(!film){sec.classList.add('nofilm');return}
+      measure();film.set(p);film.snap();
+    }
+    function measure(){var r=sec.getBoundingClientRect(),h=r.height-innerHeight;p=h>0?Math.max(0,Math.min(1,-r.top/h)):0}
+    function ui(){
+      sec.style.setProperty('--intro',(1-ssn(.02,.06,p)).toFixed(3));
+      var pos=film?film.pos:[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1];
+      sec.style.setProperty('--chap',(ssn(pos[1]-.01,pos[1]+.02,p)*(1-ssn(pos[9]-.02,pos[9]+.01,p))).toFixed(3));
+      sec.style.setProperty('--outro',ssn(pos[9]+.03,pos[9]+.07,p).toFixed(3));
+      sec.style.setProperty('--bars',(p>.03&&p<.93?(innerWidth<760?5:7):0)+'vh');
+      for(var k=0;k<10;k++){segs[k].style.setProperty('--f',Math.max(0,Math.min(1,(p-pos[k])/(pos[k+1]-pos[k]))).toFixed(3))}
+      var secs=p*96,fr=Math.floor((secs%1)*25),ss2=Math.floor(secs)%60,mm=Math.floor(secs/60);
+      $('#fTc').textContent='00:'+(mm<10?'0':'')+mm+':'+(ss2<10?'0':'')+ss2+':'+(fr<10?'0':'')+fr;
+    }
+    function onScroll(){measure();ui();if(film)film.set(p)}
+    addEventListener('scroll',onScroll,{passive:true});addEventListener('resize',onScroll);
+    new IntersectionObserver(function(es){var v=es[0].isIntersecting;if(v)init();if(film){v?film.start():film.stop()}},{rootMargin:'400px 0px'}).observe(sec);
+    onScroll();
+  });
+
+  /* Laufschrift: Zeit + Scrollgeschwindigkeit */
+  scene('marquee',function(){
+    var mq=$('#mq'),words=['Füller','Etikettierer','Blasformmaschinen','Packer','Palettierer','Verschließer','Komplettlinien'],h='';
+    for(var r=0;r<2;r++)words.forEach(function(w,i){h+='<span class="'+(i%3===1?'o':'')+'">'+w+'</span><i>●</i>'});
+    mq.innerHTML=h;
+    if(reduced) return;
+    var x=0,vel=0,lastY=scrollY,on=false,raf=0,half=0,lt=performance.now();
+    function frame(n){var dt=Math.min(.05,(n-lt)/1000);lt=n;var dy=scrollY-lastY;lastY=scrollY;vel+=(dy*.9-vel)*.12;
+      half=half||mq.scrollWidth/2;x-=(60*dt+vel*.35+0);x=((x%half)-half)%half;mq.style.transform='translate3d('+x.toFixed(1)+'px,0,0)';raf=on?requestAnimationFrame(frame):0}
+    visible(mq,function(v){on=v;if(v&&!raf){lt=performance.now();raf=requestAnimationFrame(frame)}});
+    addEventListener('resize',function(){half=0});
+  });
+
+  /* Lichtrand folgt dem Zeiger auf der Formularkarte */
+  scene('glow',function(){
+    var fc=$('#form');if(!matchMedia('(pointer:fine)').matches)return;
+    fc.addEventListener('pointermove',function(e){var r=fc.getBoundingClientRect();fc.style.setProperty('--mx',(e.clientX-r.left)+'px');fc.style.setProperty('--my',(e.clientY-r.top)+'px');fc.style.setProperty('--glow',1)});
+    fc.addEventListener('pointerleave',function(){fc.style.setProperty('--glow',0)});
+  });
+
+
+  /* ── Google-Rezensionen ───────────────
+     Hier die echten Werte eintragen: rating, count, url und items (Text wörtlich aus Google).
+     Solange placeholder:true, zeigt die Seite einen Vorschau-Hinweis. */
+  var REVIEWS={placeholder:false,rating:4.9,count:15,url:'https://www.google.com/maps/search/BEVMAQ+GmbH+Menslage',
+    items:[{"n": "Stefanie Mölle-Schröppel", "t": "Verkauf unserer Maschine professionell und gut abgewickelt. Es wurde trotz schwieriger Umstände ein guter Verkaufswert für uns und fair für den Kunden erzielt. Man hat sich immer Zeit genommen und es wurde sachlich fundiert und freundlich beraten und begleitet. Ich kann Bevmaq auf jeden Fall empfehlen.", "d": "vor 3 Jahren", "s": 5}, {"n": "Sebastian Wagenhäuser", "t": "Vom ersten Kontakt an beeindruckte mich das Team mit einer herausragenden Kommunikation und Professionalität, die ihresgleichen sucht. Jede meiner Anfragen wurde nicht nur umgehend, sondern auch mit einer Präzision und Klarheit beantwortet …", "d": "vor 3 Jahren", "s": 5}, {"n": "Salvus Mineralbrunnen", "t": "Sehr angenehmer Kontakt, reibungslose Abwicklung und Kommunikation. Immer wieder gerne. Vielen Dank Team Bevmaq!", "d": "vor einem Jahr", "s": 5}, {"n": "Christian Ueding", "t": "professioneller Partner, nur zu empfehlen. Gruß Ueding Etikettiertechnik", "d": "vor 7 Monaten", "s": 5}, {"n": "Karl Sieberer", "t": "Die Zusammenarbeit mit BEVMAQ war sehr gut, kurze Wege, immer eine Lösung parat.", "d": "vor 3 Jahren", "s": 4}, {"n": "Selim Buran", "t": "Die Zusammenarbeit war sehr professionell und alles wie geplant durchgeführt. Jederzeit gerne wieder.", "d": "vor 3 Jahren", "s": 5}, {"n": "Behälter KG Bremen", "t": "Sehr kompetenter Partner. Können wir nur weiterempfehlen!", "d": "vor 3 Jahren", "s": 5}, {"n": "Roland S", "t": "Super freundlicher Kontakt und professionelle Abwicklung. Gerne wieder!", "d": "vor 2 Jahren", "s": 5}, {"n": "Alexander Schröer", "t": "Hallo, netter Kontakt, preislich attraktiv. Gerne wieder", "d": "vor 2 Jahren", "s": 5}, {"n": "Vlado Kvesic", "t": "Wir konnten eine erfolgreiche Geschäftskooperation mit der Firma BEVMAQ erzielen. Deren professionelle und freundliche Art hat uns bei den Verhandlungen und dem Kauf der Maschine sehr geholfen.", "d": "vor 3 Jahren · übersetzt", "s": 5}, {"n": "Diego Perez Meroño", "t": "Absolut empfehlenswert. Sergis Service war tadellos; er stellte alle notwendigen Informationen bereit und war sehr aufmerksam.", "d": "vor 3 Jahren · übersetzt", "s": 5}, {"n": "Grup ED Magatzem", "t": "Gute Leute, Sergi ist ein sehr seriöser und sehr freundlicher Mensch, eine glatte 10, danke.", "d": "vor 3 Jahren · übersetzt", "s": 5}, {"n": "David Petrosino", "t": "Sehr professionell bei der Überwachung der Maschinenkaufdokumentation", "d": "vor einem Jahr · übersetzt", "s": 5}, {"n": "Михайло Матюшин", "t": "Ein zuverlässiger Partner. Empfehlenswert für Unternehmen.", "d": "vor 3 Jahren · übersetzt", "s": 5}, {"n": "Milorad Stevanovic", "t": "Tolles Erlebnis!", "d": "vor 3 Jahren · übersetzt", "s": 5}]};
+  scene('reviews',function(){
+    var sec=$('#stimmen'); if(!sec) return;
+    var R=REVIEWS, star='<svg viewBox="0 0 24 24"><path d="M12 2.6l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.5 6.1 20.6l1.2-6.5L2.5 9.5l6.6-.9z" fill="FILL"/></svg>';
+    $('#rvStars').innerHTML=[0,1,2,3,4].map(function(){return '<span>'+star.replace('FILL','rgba(255,255,255,.14)')+'<span class="f" style="position:absolute;inset:0">'+star.replace('FILL','#FF8F42')+'</span></span>'}).join('');
+    $('#rvMeta').textContent=R.count+' Rezensionen · Durchschnitt '+String(R.rating.toFixed(1)).replace('.',',')+' von 5';
+    $('#rvLink').href=R.url; $('#rvFlag').hidden=!R.placeholder;
+    sec.setAttribute('aria-label','Google-Bewertung '+R.rating+' von 5 aus '+R.count+' Rezensionen');
+    function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+    function card(r){var ini=r.n.split(/\s+/).map(function(w){return w[0]}).join('').slice(0,2).toUpperCase();
+      return '<article class="rcard"><div class="st" aria-label="'+r.s+' von 5 Sternen">'+'★★★★★'.slice(0,r.s)+'<i style="opacity:.25;font-style:normal">'+'★★★★★'.slice(r.s)+'</i></div><blockquote>'+esc(r.t)+'</blockquote><footer><span class="av">'+esc(ini)+'</span><span class="nm"><b>'+esc(r.n)+'</b><small>'+esc(r.d)+'</small></span><span class="g" aria-hidden="true">G</span></footer></article>'}
+    var half=Math.ceil(R.items.length/2), rows=[R.items.slice(0,half),R.items.slice(half)];
+    $('#rvRows').innerHTML=rows.map(function(it){var h=it.map(card).join('');return '<div class="rev-row">'+(reduced?h:h+h+h)+'</div>'}).join('');
+    var rowEls=$$('.rev-row',sec), off=[0,0], vel=0, lastY=scrollY, on=false, raf=0, done=false, t0=0;
+    function count(){var k=Math.min(1,(performance.now()-t0)/2200), e=1-Math.pow(1-k,4);
+      $('#rvNum').textContent=(R.rating*e).toFixed(1).replace('.',','); 
+      $$('#rvStars .f').forEach(function(f,i){f.style.setProperty('--f',Math.max(0,Math.min(1,R.rating*e-i))*100+'%')});
+      if(k<1) requestAnimationFrame(count)}
+    function tick(){var dy=scrollY-lastY; lastY=scrollY; vel+=(dy-vel)*.1;
+      rowEls.forEach(function(r,i){var w=r.scrollWidth/3, sp=(.45+Math.abs(vel)*.12)*(i?-1:1);
+        off[i]=(off[i]+sp)%w; if(off[i]>0) off[i]-=w; r.style.transform='translate3d('+off[i].toFixed(1)+'px,0,0)'});
+      raf=on?requestAnimationFrame(tick):0}
+    new IntersectionObserver(function(es){var v=es[0].isIntersecting;
+      if(v&&!done){done=true;sec.classList.add('is-in');t0=performance.now();if(reduced){t0-=9999}count()}
+      on=v&&!reduced; if(on&&!raf){lastY=scrollY;raf=requestAnimationFrame(tick)}},{threshold:.18}).observe(sec);
+    sec.addEventListener('pointermove',function(e){var b=sec.getBoundingClientRect();sec.style.setProperty('--gx',((e.clientX-b.left)/b.width*2-1).toFixed(3));sec.style.setProperty('--gy',((e.clientY-b.top)/b.height*2-1).toFixed(3))});
+  });
+
+  scene('footer',function(){var w=$('.ft-word');if(!w||reduced)return;var on=false;
+    function u(){var rest=document.documentElement.scrollHeight-scrollY-innerHeight;w.style.setProperty('--wy',Math.max(0,Math.min(120,rest*.3)).toFixed(1)+'px')}
+    addEventListener('scroll',function(){if(on)u()},{passive:true});
+    new IntersectionObserver(function(e){on=e[0].isIntersecting;if(on)u()},{rootMargin:'200px 0px'}).observe(w)});
+  /* CTA springt zum Formular und fokussiert den aktuellen Schritt */
+  $$('#ctaBtn,[data-toform]').forEach(function(b){b.addEventListener('click',function(e){
+    e.preventDefault(); $('#form').scrollIntoView({behavior:reduced?'auto':'smooth',block:'center'});
+    setTimeout(function(){var t=$('.step.is-on .chip, .step.is-on input',$('#form'));if(t)t.focus({preventScroll:true})},700);
+  })});
+})();
+</script>
